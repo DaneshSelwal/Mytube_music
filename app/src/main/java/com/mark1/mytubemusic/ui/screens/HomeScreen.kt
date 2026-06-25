@@ -188,7 +188,7 @@ fun SharedTransitionScope.HomeScreen(
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = if (currentSong != null) 100.dp else 16.dp)
+                        contentPadding = PaddingValues(bottom = if (currentSong != null) 180.dp else 16.dp)
                     ) {
                         when (selectedTabIndex) {
                             0 -> { // Songs
@@ -246,8 +246,8 @@ fun SharedTransitionScope.HomeScreen(
             if (currentSong != null) {
                 Box(
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(16.dp)
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 24.dp, end = 24.dp)
                 ) {
                     MiniPlayer(
                         animatedVisibilityScope = animatedVisibilityScope,
@@ -256,6 +256,8 @@ fun SharedTransitionScope.HomeScreen(
                         progress = progress.toFloat(),
                         duration = duration,
                         onPlayPause = { playerViewModel.togglePlayPause() },
+                        onNext = { playerViewModel.skipToNext() },
+                        onPrev = { playerViewModel.skipToPrevious() },
                         onClick = onNavigateToNowPlaying
                     )
                 }
@@ -321,44 +323,47 @@ fun SharedTransitionScope.MiniPlayer(
     isPlaying: Boolean, 
     progress: Float,
     duration: Long,
-    onPlayPause: () -> Unit, 
+    onPlayPause: () -> Unit,
+    onNext: () -> Unit,
+    onPrev: () -> Unit,
     onClick: () -> Unit
 ) {
     val progressRatio = if (duration > 0L) progress / duration.toFloat() else 0f
     
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(72.dp)
+            .size(150.dp)
+            .shadow(16.dp, RoundedCornerShape(24.dp), ambientColor = MyTubeColors.AccentSkyBlue, spotColor = MyTubeColors.AccentSkyBlue.copy(alpha = 0.5f))
+            .clip(RoundedCornerShape(24.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(24.dp))
             .clickable { onClick() }
-            .clip(RoundedCornerShape(20.dp))
-            .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
     ) {
         // Glass background
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Brush.linearGradient(listOf(Color.White.copy(alpha = 0.08f), Color.White.copy(alpha = 0.04f))))
+                .background(Brush.linearGradient(listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.05f))))
                 .run {
                     if (android.os.Build.VERSION.SDK_INT >= 31) {
                         this.graphicsLayer {
-                            renderEffect = androidx.compose.ui.graphics.BlurEffect(12f, 12f)
+                            renderEffect = androidx.compose.ui.graphics.BlurEffect(24f, 24f)
                         }
                     } else this
                 }
         )
         
-        Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.fillMaxSize().padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
             // Shared CD Art
             SpinningCDAnimation(
                 animatedVisibilityScope = animatedVisibilityScope,
                 isPlaying = isPlaying,
-                artBitmap = null, // Can add media metadata image later
+                artBitmap = null,
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(56.dp)
                     .sharedElement(
                         state = rememberSharedContentState(key = "cd_art"),
                         animatedVisibilityScope = animatedVisibilityScope,
@@ -366,11 +371,10 @@ fun SharedTransitionScope.MiniPlayer(
                     )
             )
             
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = song.title,
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                     maxLines = 1,
@@ -378,26 +382,39 @@ fun SharedTransitionScope.MiniPlayer(
                 )
                 Text(
                     text = song.artist,
-                    fontSize = 13.sp,
+                    fontSize = 11.sp,
                     color = Color.White.copy(alpha = 0.7f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            IconButton(onClick = onPlayPause) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = "Play/Pause",
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
-                )
+            
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onPrev, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.SkipPrevious, contentDescription = "Prev", tint = Color.White, modifier = Modifier.size(22.dp))
+                }
+                IconButton(onClick = onPlayPause, modifier = Modifier.size(40.dp)) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = "Play/Pause",
+                        tint = MyTubeColors.AccentSkyBlue,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                IconButton(onClick = onNext, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = Color.White, modifier = Modifier.size(22.dp))
+                }
             }
         }
         
         // Progress Bar
         LinearProgressIndicator(
             progress = { progressRatio },
-            modifier = Modifier.fillMaxWidth().height(2.dp).align(Alignment.BottomCenter),
+            modifier = Modifier.fillMaxWidth().height(3.dp).align(Alignment.BottomCenter),
             color = MyTubeColors.AccentSkyBlue,
             trackColor = Color.Transparent
         )
