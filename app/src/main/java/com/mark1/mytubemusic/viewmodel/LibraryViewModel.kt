@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mark1.mytubemusic.data.model.Song
 import com.mark1.mytubemusic.repository.SongRepository
+import com.mark1.mytubemusic.repository.OnlineSongRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,11 +35,28 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
         songs.groupBy { it.artist }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
+    
+    private val onlineRepository = OnlineSongRepository()
+
+    private val _onlineSearchResults = MutableStateFlow<List<Song>>(emptyList())
+    val onlineSearchResults: StateFlow<List<Song>> = _onlineSearchResults.asStateFlow()
+
+    private var searchJob: kotlinx.coroutines.Job? = null
+
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
+        searchJob?.cancel()
+        if (query.length >= 3) {
+            searchJob = viewModelScope.launch(Dispatchers.IO) {
+                kotlinx.coroutines.delay(500) // Debounce
+                _onlineSearchResults.value = onlineRepository.searchSongs(query)
+            }
+        } else {
+            _onlineSearchResults.value = emptyList()
+        }
     }
 
     val filteredSongs: StateFlow<List<Song>> = combine(allSongs, _searchQuery) { songs, query ->
@@ -104,7 +122,7 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
                     val duration = cursor.getLong(durationColumn)
                     val data = cursor.getString(dataColumn)
                     
-                    if (data != null && data.endsWith(".mp3", ignoreCase = true)) {
+                    if (data != null && (data.endsWith(".mp3", ignoreCase = true) || data.endsWith(".m4a", ignoreCase = true))) {
                         val fileName = java.io.File(data).nameWithoutExtension
                         
                         // User requested to figure out singer name from the last part of filename

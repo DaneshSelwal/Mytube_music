@@ -47,7 +47,8 @@ class MainActivity : ComponentActivity() {
             applicationContext,
             AppDatabase::class.java,
             "mytube_music_db"
-        ).build()
+        ).fallbackToDestructiveMigration()
+         .build()
         val repository = SongRepository(database.songDao())
         
         val libraryViewModel = ViewModelProvider(this, object : ViewModelProvider.Factory {

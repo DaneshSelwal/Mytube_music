@@ -28,6 +28,11 @@ import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.Data
+import androidx.work.WorkManager
+import com.mark1.mytubemusic.worker.DownloadWorker
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -183,6 +188,7 @@ fun SharedTransitionScope.HomeScreen(
     val tabs = listOf("Songs", "Albums", "Artists")
     val searchQuery by libraryViewModel.searchQuery.collectAsState()
     val filteredSongs by libraryViewModel.filteredSongs.collectAsState()
+    val onlineSearchResults by libraryViewModel.onlineSearchResults.collectAsState()
     val albums by libraryViewModel.albums.collectAsState()
     val artists by libraryViewModel.artists.collectAsState()
 
@@ -269,12 +275,24 @@ fun SharedTransitionScope.HomeScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(bottom = if (currentSong != null) 180.dp else 16.dp)
                             ) {
-                                item { SectionHeader("ALL SONGS (${filteredSongs.size})") }
-                                itemsIndexed(filteredSongs) { index, song ->
-                                    val isCurrent = currentSong?.uri == song.uri
-                                    SongItem(song = song, isCurrent = isCurrent, modifier = Modifier.animateItem(), onClick = {
-                                        playerViewModel.playQueue(filteredSongs, index)
-                                    })
+                                if (filteredSongs.isNotEmpty() || searchQuery.isBlank()) {
+                                    item { SectionHeader("LOCAL SONGS (${filteredSongs.size})") }
+                                    itemsIndexed(filteredSongs) { index, song ->
+                                        val isCurrent = currentSong?.uri == song.uri
+                                        SongItem(song = song, isCurrent = isCurrent, modifier = Modifier.animateItem(), onClick = {
+                                            playerViewModel.playQueue(filteredSongs, index)
+                                        })
+                                    }
+                                }
+                                
+                                if (onlineSearchResults.isNotEmpty()) {
+                                    item { SectionHeader("ONLINE SEARCH RESULTS") }
+                                    itemsIndexed(onlineSearchResults) { index, song ->
+                                        val isCurrent = currentSong?.uri == song.uri
+                                        SongItem(song = song, isCurrent = isCurrent, modifier = Modifier.animateItem(), onClick = {
+                                            playerViewModel.playQueue(onlineSearchResults, index)
+                                        })
+                                    }
                                 }
                             }
                         }
@@ -401,6 +419,7 @@ fun SongItem(modifier: Modifier = Modifier, song: Song, isCurrent: Boolean, onCl
             Spacer(Modifier.width(8.dp))
         }
 
+        
         // Album art thumbnail
         Box(
             modifier = Modifier
@@ -409,7 +428,14 @@ fun SongItem(modifier: Modifier = Modifier, song: Song, isCurrent: Boolean, onCl
                 .background(Tokens.bgElevated),
             contentAlignment = Alignment.Center
         ) {
-            if (artBitmap != null) {
+            if (song.albumArtUri != null) {
+                coil.compose.AsyncImage(
+                    model = song.albumArtUri,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else if (artBitmap != null) {
                 androidx.compose.foundation.Image(
                     bitmap = artBitmap!!,
                     contentDescription = null,
@@ -445,11 +471,35 @@ fun SongItem(modifier: Modifier = Modifier, song: Song, isCurrent: Boolean, onCl
             )
         }
         
-        fun Long.toFormatTime(): String = String.format("%02d:%02d", this / 1000 / 60, (this / 1000) % 60)
-        Text(
-            song.duration.toFormatTime(),
-            style = MyTubeTypography.labelSmall.copy(color = Tokens.textDisabled, fontSize = 11.sp)
-        )
+                fun Long.toFormatTime(): String = String.format("%02d:%02d", this / 1000 / 60, (this / 1000) % 60)
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                song.duration.toFormatTime(),
+                style = MyTubeTypography.labelSmall.copy(color = Tokens.textDisabled, fontSize = 11.sp)
+            )
+            if (song.uri.startsWith("online:")) {
+                Spacer(Modifier.height(4.dp))
+                IconButton(
+                    onClick = {
+                        val videoId = song.uri.removePrefix("online:")
+                        val workRequest = OneTimeWorkRequestBuilder<DownloadWorker>()
+                            .setInputData(
+                                Data.Builder()
+                                    .putString("videoId", videoId)
+                                    .putString("title", song.title)
+                                    .putString("artist", song.artist)
+                                    .build()
+                            )
+                            .build()
+                        WorkManager.getInstance(context).enqueue(workRequest)
+                        android.widget.Toast.makeText(context, "Downloading...", android.widget.Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(Icons.Default.Download, contentDescription = "Download", tint = Tokens.accentPrimary, modifier = Modifier.size(16.dp))
+                }
+            }
+        }
     }
 }
 

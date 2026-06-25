@@ -11,7 +11,8 @@ data class Song(
     val artist: String,
     val album: String,
     val duration: Long,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val albumArtUri: String? = null
 )
 
 @Entity(tableName = "playlists")
