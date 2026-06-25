@@ -269,6 +269,11 @@ class PlayerViewModel : ViewModel() {
             _sleepTimerText.value = null
             return
         }
+
+    fun cancelSleepTimer() {
+        sleepTimerJob?.cancel()
+        _sleepTimerText.value = null
+    }
         sleepTimerJob = viewModelScope.launch {
             var remainingSeconds = minutes * 60
             while (remainingSeconds > 0) {

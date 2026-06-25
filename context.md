@@ -146,6 +146,13 @@ implementation("androidx.datastore:datastore-preferences:1.1.1")
 - **Legacy Files**: `QueueScreen.kt` still exists in the filesystem but has been bypassed by `QueueBottomSheet`. It should be deleted to prevent confusion.
 
 ## 9. Implementation Status (Full Audit)
+- **DONE**: Refactor MiniPlayer.kt with Tokens, AsyncImage, AnimatedVisibility, and Haptics.
+- **DONE**: Fix inline colors and add list animations in HomeScreen.kt.
+- **DONE**: Fix NowPlayingScreen.kt colors and VinylDisc cleanup.
+- **DONE**: Fix GlassCard.kt token gap.
+- **DONE**: Sleep Timer live countdown.
+- **DONE**: Font Integration & util/ Cleanup.
+
 
 ### HomeScreen.kt
 - Renders: The main library interface with a tabbed layout (Songs, Albums, Artists), search bar, and shimmer loading state.
@@ -244,3 +251,8 @@ ememberInfiniteTransition with nimateFloat.
 3. **ui/screens/HomeScreen.kt**: Replace the inline Color.White.copy(...) hardcoded colors in the search OutlinedTextField with appropriate Tokens (e.g., Tokens.glassTint).
 4. **ui/screens/NowPlayingScreen.kt**: Add haptic feedback (HapticFeedbackType.TextHandleMove) to the slider onValueChange and queue list item clicks to standardize the premium tactile feel across all playback controls.
 5. **ui/components/VinylDisc.kt**: Delete this legacy file. It has snapping rotation bugs and hardcoded colors, and has already been superseded by the superior SpinningCDAnimation built directly into NowPlayingScreen.kt.
+
+## 15. Remaining Polish Items (not yet implemented)
+- MainActivity.kt: The SharedTransitionLayout navigation structure feels solid, but could potentially benefit from predictive back gesture support for a truly native feel.
+- DetailScreen.kt: The transition between the grid in HomeScreen and the DetailScreen could use a shared element transition on the Album/Artist thumbnail. Currently, it just slides in.
+- PlayerViewModel.kt: Error handling for unplayable files could be more robust (e.g. surfacing a SnackBar if Media3 fails to buffer).

@@ -82,8 +82,8 @@ fun SharedTransitionScope.NowPlayingScreen(
     val progress by playerViewModel.progress.collectAsState()
     val context = LocalContext.current
 
-    var backgroundColor1 by remember { mutableStateOf(Color.DarkGray) }
-    var backgroundColor2 by remember { mutableStateOf(Color.Black) }
+    var backgroundColor1 by remember { mutableStateOf(Tokens.bgDeep) }
+    var backgroundColor2 by remember { mutableStateOf(Tokens.bgDeep) }
     var showSleepTimerDialog by remember { mutableStateOf(false) }
     var showSpeedDialog by remember { mutableStateOf(false) }
     var showLyrics by remember { mutableStateOf(false) }
@@ -292,7 +292,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                     ) {
                         Icon(Icons.Default.Timer, contentDescription = "Sleep Timer", tint = if (sleepTimerText != null) MyTubeColors.AccentSkyBlue else MyTubeColors.TextPrimary, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = sleepTimerText ?: "Timer", color = if (sleepTimerText != null) MyTubeColors.AccentSkyBlue else MyTubeColors.TextPrimary, fontSize = 12.sp)
+                        Text(text = sleepTimerText ?: "Timer", color = if (sleepTimerText != null) MyTubeColors.AccentSkyBlue else MyTubeColors.TextPrimary, style = MyTubeTypography.labelSmall)
                     }
                 }
                 Spacer(modifier = Modifier.width(16.dp))
@@ -307,7 +307,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                     ) {
                         Icon(Icons.Default.Speed, contentDescription = "Speed", tint = if (playbackSpeed != 1.0f) MyTubeColors.AccentSkyBlue else MyTubeColors.TextPrimary, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "${playbackSpeed}x", color = if (playbackSpeed != 1.0f) MyTubeColors.AccentSkyBlue else MyTubeColors.TextPrimary, fontSize = 12.sp)
+                        Text(text = "${playbackSpeed}x", color = if (playbackSpeed != 1.0f) MyTubeColors.AccentSkyBlue else MyTubeColors.TextPrimary, style = MyTubeTypography.labelSmall)
                     }
                 }
             }
