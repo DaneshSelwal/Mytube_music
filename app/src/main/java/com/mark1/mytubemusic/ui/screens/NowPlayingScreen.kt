@@ -63,6 +63,17 @@ import com.mark1.mytubemusic.ui.theme.Tokens
 import com.mark1.mytubemusic.ui.theme.MyTubeTypography
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.math.abs
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -82,31 +93,31 @@ fun SharedTransitionScope.NowPlayingScreen(
     val progress by playerViewModel.progress.collectAsState()
     val context = LocalContext.current
 
-    var backgroundColor1 by remember { mutableStateOf(Tokens.bgDeep) }
-    var backgroundColor2 by remember { mutableStateOf(Tokens.bgDeep) }
-    var showSleepTimerDialog by remember { mutableStateOf(false) }
-    var showSpeedDialog by remember { mutableStateOf(false) }
+    var vibrantColor by remember { mutableStateOf(Tokens.accentPrimary) }
+    var mutedColor by remember { mutableStateOf(Tokens.bgDeep) }
+    var showSleepTimerSheet by remember { mutableStateOf(false) }
+    var showSpeedSheet by remember { mutableStateOf(false) }
     var showLyrics by remember { mutableStateOf(false) }
     var showQueueSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentSong?.uri) {
         currentSong?.uri?.let { uri ->
             PaletteExtractor.getColorsFromUri(context, uri) { c1, c2 ->
-                backgroundColor1 = c1
-                backgroundColor2 = c2
+                vibrantColor = c1
+                mutedColor = c2
             }
         }
     }
 
-    val animatedColor1 by animateColorAsState(targetValue = backgroundColor1, animationSpec = tween(1000))
-    val animatedColor2 by animateColorAsState(targetValue = backgroundColor2, animationSpec = tween(1000))
+    val animVibrant by animateColorAsState(targetValue = vibrantColor, animationSpec = tween(800), label = "vibrant")
+    val animMuted by animateColorAsState(targetValue = mutedColor, animationSpec = tween(800), label = "muted")
 
     val pulseScale by animateFloatAsState(
         targetValue = if (isPlaying) 1.0f + (0.05f * ((progress / 400) % 2L).toFloat()) else 1.0f,
         animationSpec = tween(400, easing = FastOutSlowInEasing)
     )
 
-    val infiniteTransition = rememberInfiniteTransition()
+    val infiniteTransition = rememberInfiniteTransition(label = "bg")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = 360f,
         animationSpec = infiniteRepeatable(tween(20000, easing = LinearEasing), RepeatMode.Restart)
@@ -257,7 +268,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                             style = MyTubeTypography.labelSmall.copy(color = Tokens.textSecondary),
                             modifier = Modifier.clickable { 
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                showSleepTimerDialog = true 
+                                showSleepTimerSheet = true 
                             }.padding(8.dp).background(Tokens.glassTint, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 6.dp)
                         )
                     }
@@ -268,7 +279,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                         style = MyTubeTypography.labelSmall.copy(color = Tokens.textSecondary),
                         modifier = Modifier.clickable { 
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            showSleepTimerDialog = true 
+                            showSleepTimerSheet = true 
                         }.padding(8.dp).background(Tokens.glassTint, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
@@ -284,7 +295,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                 Surface(
                     color = MyTubeColors.TextPrimary.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.clickable { showSleepTimerDialog = true }
+                    modifier = Modifier.clickable { showSleepTimerSheet = true }
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -299,7 +310,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                 Surface(
                     color = MyTubeColors.TextPrimary.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.clickable { showSpeedDialog = true }
+                    modifier = Modifier.clickable { showSpeedSheet = true }
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -463,7 +474,7 @@ fun SharedTransitionScope.NowPlayingScreen(
 
     if (showSleepTimerDialog) {
         AlertDialog(
-            onDismissRequest = { showSleepTimerDialog = false },
+            onDismissRequest = { showSleepTimerSheet = false },
             title = { Text("Sleep Timer", style = MyTubeTypography.titleLarge.copy(color = Tokens.textPrimary)) },
             text = {
                 Column {
@@ -475,7 +486,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                                 .fillMaxWidth()
                                 .clickable {
                                     playerViewModel.setSleepTimer(minutes)
-                                    showSleepTimerDialog = false
+                                    showSleepTimerSheet = false
                                 }
                                 .padding(16.dp)
                         )
@@ -487,14 +498,14 @@ fun SharedTransitionScope.NowPlayingScreen(
                             .fillMaxWidth()
                             .clickable {
                                 playerViewModel.setSleepTimer(0)
-                                showSleepTimerDialog = false
+                                showSleepTimerSheet = false
                             }
                             .padding(16.dp)
                     )
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showSleepTimerDialog = false }) {
+                TextButton(onClick = { showSleepTimerSheet = false }) {
                     Text("Cancel", style = MyTubeTypography.bodyMedium.copy(color = Tokens.accentPrimary))
                 }
             },
@@ -504,7 +515,7 @@ fun SharedTransitionScope.NowPlayingScreen(
 
     if (showSpeedDialog) {
         AlertDialog(
-            onDismissRequest = { showSpeedDialog = false },
+            onDismissRequest = { showSpeedSheet = false },
             title = { Text("Playback Speed", style = MyTubeTypography.titleLarge.copy(color = Tokens.textPrimary)) },
             text = {
                 Column {
@@ -516,7 +527,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                                 .fillMaxWidth()
                                 .clickable {
                                     playerViewModel.setPlaybackSpeed(speed)
-                                    showSpeedDialog = false
+                                    showSpeedSheet = false
                                 }
                                 .padding(16.dp)
                         )
@@ -524,7 +535,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showSpeedDialog = false }) {
+                TextButton(onClick = { showSpeedSheet = false }) {
                     Text("Cancel", style = MyTubeTypography.bodyMedium.copy(color = Tokens.accentPrimary))
                 }
             },
@@ -742,4 +753,11 @@ fun QueueItem(song: Song, isPlaying: Boolean, onClick: () -> Unit) {
         }
     }
 }
+
+
+
+
+
+
+
 

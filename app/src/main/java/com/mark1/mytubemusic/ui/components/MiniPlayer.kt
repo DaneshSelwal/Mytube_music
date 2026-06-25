@@ -34,6 +34,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.mark1.mytubemusic.R
 import com.mark1.mytubemusic.data.model.Song
@@ -60,8 +61,8 @@ fun SharedTransitionScope.MiniPlayer(
     Box(
         modifier = Modifier
             .padding(16.dp)
-            .size(150.dp)
-            .shadow(24.dp, RoundedCornerShape(24.dp), ambientColor = Tokens.accentPrimary, spotColor = Tokens.accentPrimary.copy(alpha = 0.5f))
+            .size(300.dp)
+            .shadow(32.dp, RoundedCornerShape(32.dp), ambientColor = Tokens.accentPrimary, spotColor = Tokens.accentPrimary.copy(alpha = 0.5f))
             .clip(RoundedCornerShape(24.dp))
             .background(Tokens.bgElevated.copy(alpha = 0.95f))
             .border(1.dp, Tokens.strokeSubtle, RoundedCornerShape(24.dp))
@@ -73,7 +74,7 @@ fun SharedTransitionScope.MiniPlayer(
             }
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(12.dp),
+            modifier = Modifier.fillMaxSize().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
@@ -81,7 +82,7 @@ fun SharedTransitionScope.MiniPlayer(
                 model = song.uri,
                 contentDescription = null,
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(112.dp)
                     .clip(CircleShape)
                     .border(1.dp, Tokens.strokeSubtle, CircleShape)
                     .sharedElement(
@@ -108,25 +109,25 @@ fun SharedTransitionScope.MiniPlayer(
                 IconButton(onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onPrev()
-                }, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.SkipPrevious, tint = Tokens.textSecondary, contentDescription = "Previous")
+                }, modifier = Modifier.size(56.dp)) {
+                    Icon(Icons.Default.SkipPrevious, tint = Tokens.textSecondary, modifier = Modifier.size(48.dp), contentDescription = "Previous")
                 }
                 IconButton(onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onPlayPause()
-                }, modifier = Modifier.size(36.dp)) {
+                }, modifier = Modifier.size(72.dp)) {
                     Icon(
                         if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         tint = Tokens.accentPrimary,
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(64.dp),
                         contentDescription = if (isPlaying) "Pause" else "Play"
                     )
                 }
                 IconButton(onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onNext()
-                }, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.SkipNext, tint = Tokens.textSecondary, contentDescription = "Next")
+                }, modifier = Modifier.size(56.dp)) {
+                    Icon(Icons.Default.SkipNext, tint = Tokens.textSecondary, modifier = Modifier.size(48.dp), contentDescription = "Next")
                 }
             }
         }
@@ -135,8 +136,25 @@ fun SharedTransitionScope.MiniPlayer(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .fillMaxWidth(progressRatio)
-                .height(3.dp)
+                .height(6.dp)
                 .background(Brush.horizontalGradient(listOf(Tokens.accentPrimary, Tokens.accentSecondary)))
         )
+        
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+                .background(Tokens.accentPrimary.copy(alpha = 0.85f), RoundedCornerShape(8.dp))
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+        ) {
+            Text(
+                text = "Now Playing",
+                style = MyTubeTypography.labelSmall.copy(
+                    color = Tokens.bgDeep,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp
+                )
+            )
+        }
     }
 }

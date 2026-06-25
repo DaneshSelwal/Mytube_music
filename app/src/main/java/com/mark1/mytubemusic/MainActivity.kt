@@ -18,6 +18,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.room.Room
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import com.mark1.mytubemusic.data.db.AppDatabase
@@ -92,7 +98,14 @@ class MainActivity : ComponentActivity() {
 fun AppNavHost(libraryViewModel: LibraryViewModel, playerViewModel: PlayerViewModel, startDestination: String = "onboarding") {
     val navController = rememberNavController()
     SharedTransitionLayout {
-        NavHost(navController = navController, startDestination = startDestination) {
+        NavHost(
+            navController = navController, 
+            startDestination = startDestination,
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
+            exitTransition = { fadeOut() },
+            popEnterTransition = { fadeIn() },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() }
+        ) {
             composable("onboarding") {
                 OnboardingScreen(
                     viewModel = libraryViewModel,

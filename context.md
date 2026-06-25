@@ -147,12 +147,11 @@ implementation("androidx.datastore:datastore-preferences:1.1.1")
 
 ## 9. Implementation Status (Full Audit)
 - **DONE**: Refactor MiniPlayer.kt with Tokens, AsyncImage, AnimatedVisibility, and Haptics.
-- **DONE**: Fix inline colors and add list animations in HomeScreen.kt.
-- **DONE**: Fix NowPlayingScreen.kt colors and VinylDisc cleanup.
-- **DONE**: Fix GlassCard.kt token gap.
-- **DONE**: Sleep Timer live countdown.
-- **DONE**: Font Integration & util/ Cleanup.
-
+- **DONE**: NowPlayingScreen.kt visual polish (Mesh background, LyricsView, swipe gestures, bottom sheets, CD animation).
+- **DONE**: HomeScreen.kt top bar collapsing and search bar tokens.
+- **DONE**: DetailScreen.kt blurred hero image and scrim.
+- **DONE**: MainActivity.kt enter/exit navigation transitions.
+- **DONE**: QueueBottomSheet drag-to-reorder integration.
 
 ### HomeScreen.kt
 - Renders: The main library interface with a tabbed layout (Songs, Albums, Artists), search bar, and shimmer loading state.
@@ -201,18 +200,13 @@ implementation("androidx.datastore:datastore-preferences:1.1.1")
 ## 10. Animation Audit
 
 ### Existing animations:
-- NowPlayingScreen.kt: Background mesh uses nimateColorAsState for palette transitions; pulseScale uses nimateFloatAsState for beat-matching. SpinningCDAnimation uses Animatable.animateTo for smooth startup and slow-down. AnimatedVisibility (fade) for swapping Lyrics and CD. Shared element transition (sharedElement) on the CD art.
-- HomeScreen.kt: Shimmer uses 
-ememberInfiniteTransition with nimateFloat.
-- VinylDisc.kt: Rotation uses 
-ememberInfiniteTransition with nimateFloat.
+- NowPlayingScreen.kt: Infinite mesh background with PaletteExtractor. SpinningCDAnimation with continuous Animatable. LyricsView scroll and scale.
+- HomeScreen.kt: Shimmer uses rememberInfiniteTransition. TopAppBar collapses smoothly.
+- MainActivity.kt: slideIn/slideOut/fadeIn/fadeOut implemented on NavHost.
+- QueueBottomSheet: Drag-to-reorder animations using reorderable.
 
 ### Missing animations:
-- **NowPlayingScreen background**: Yes, it animates smoothly between two palette colors on track change (nimateColorAsState).
-- **VinylDisc**: No, it uses an infinite transition that resets/snaps when playback pauses, unlike the custom SpinningCDAnimation in NowPlaying.
-- **MiniPlayer**: Missing AnimatedVisibility enter/exit transitions; it simply mounts/unmounts instantly based on if (currentSong != null).
-- **HomeScreen**: List items do not animate in (missing nimateItemPlacement or staggered fades).
-- **Navigation**: Nav graph enter/exit transitions are defined in MainActivity with SharedTransitionScope providing shared element morphs.
+- All resolved.
 
 ---
 
@@ -256,3 +250,9 @@ ememberInfiniteTransition with nimateFloat.
 - MainActivity.kt: The SharedTransitionLayout navigation structure feels solid, but could potentially benefit from predictive back gesture support for a truly native feel.
 - DetailScreen.kt: The transition between the grid in HomeScreen and the DetailScreen could use a shared element transition on the Album/Artist thumbnail. Currently, it just slides in.
 - PlayerViewModel.kt: Error handling for unplayable files could be more robust (e.g. surfacing a SnackBar if Media3 fails to buffer).
+
+
+## 16. Performance Notes
+- **Recomposition Scoping**: NowPlayingScreen relies heavily on Canvas drawing and Modifier.graphicsLayer for background offsets and scaling to prevent excessive recomposition of layout nodes during animations.
+- **State Usage**: StateFlow is leveraged across all ViewModels, minimizing unnecessary re-renders. PaletteExtractor is called off the main thread in LaunchedEffect to avoid blocking the UI during image processing.
+- **LazyLists**: QueueBottomSheet and LyricsView use itemsIndexed and rememberLazyListState to optimize scroll performance and distance-aware rendering logic without recalculating positions globally.

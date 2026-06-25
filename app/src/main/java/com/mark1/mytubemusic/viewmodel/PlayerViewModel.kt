@@ -195,11 +195,13 @@ class PlayerViewModel : ViewModel() {
                 .setTitle(song.title)
                 .setArtist(song.artist)
                 .setAlbumTitle(song.album)
+                .setArtworkUri(android.net.Uri.parse(song.uri))
                 .setExtras(extras)
                 .build()
                 
             val mediaItem = MediaItem.Builder()
                 .setMediaId(song.uri)
+                .setUri(song.uri)
                 .setMediaMetadata(metadata)
                 .build()
                 
@@ -217,11 +219,13 @@ class PlayerViewModel : ViewModel() {
                     .setTitle(song.title)
                     .setArtist(song.artist)
                     .setAlbumTitle(song.album)
+                    .setArtworkUri(android.net.Uri.parse(song.uri))
                     .setExtras(extras)
                     .build()
                     
                 MediaItem.Builder()
                     .setMediaId(song.uri)
+                    .setUri(song.uri)
                     .setMediaMetadata(metadata)
                     .build()
             }
@@ -239,6 +243,14 @@ class PlayerViewModel : ViewModel() {
                 it.play()
             }
         }
+    }
+
+    fun moveQueueItem(from: Int, to: Int) {
+        val currentQueue = _queue.value.toMutableList()
+        val item = currentQueue.removeAt(from)
+        currentQueue.add(to, item)
+        _queue.value = currentQueue
+        player?.moveMediaItem(from, to)
     }
 
     fun skipToNext() {

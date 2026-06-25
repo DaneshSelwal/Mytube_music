@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
@@ -162,7 +163,7 @@ fun EmptyLibrary() {
     }
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun SharedTransitionScope.HomeScreen(
     animatedVisibilityScope: AnimatedVisibilityScope,
@@ -192,38 +193,40 @@ fun SharedTransitionScope.HomeScreen(
 
     val listState = rememberLazyListState()
 
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
     Scaffold(
         containerColor = Color.Transparent,
-        modifier = Modifier.background(backgroundBrush)
+        modifier = Modifier.background(backgroundBrush).nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text("MyTube", style = MyTubeTypography.titleLarge, color = Tokens.accentPrimary)
+                        Text("Music", style = MyTubeTypography.labelSmall)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { MyTubeColors.isDarkTheme = !MyTubeColors.isDarkTheme }) {
+                        AnimatedContent(targetState = MyTubeColors.isDarkTheme, label = "ThemeToggle") { dark ->
+                            Icon(
+                                imageVector = if (dark) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                contentDescription = "Toggle Theme",
+                                tint = Tokens.accentPrimary
+                            )
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Tokens.bgSurface
+                ),
+                scrollBehavior = scrollBehavior
+            )
+        }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             Column(modifier = Modifier.fillMaxSize()) {
-                
-                // Header
-                @OptIn(ExperimentalMaterial3Api::class)
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text("MyTube", style = MyTubeTypography.titleLarge, color = Tokens.accentPrimary)
-                            Text("Music", style = MyTubeTypography.labelSmall)
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { MyTubeColors.isDarkTheme = !MyTubeColors.isDarkTheme }) {
-                            AnimatedContent(targetState = MyTubeColors.isDarkTheme, label = "ThemeToggle") { dark ->
-                                Icon(
-                                    imageVector = if (dark) Icons.Default.LightMode else Icons.Default.DarkMode,
-                                    contentDescription = "Toggle Theme",
-                                    tint = Tokens.accentPrimary
-                                )
-                            }
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = Tokens.bgSurface
-                    )
-                )
 
                 if (isScanning) {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -243,8 +246,8 @@ fun SharedTransitionScope.HomeScreen(
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Tokens.bgSurface,
                             unfocusedContainerColor = Tokens.bgSurface,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
+                            focusedTextColor = Tokens.textPrimary,
+                            unfocusedTextColor = Tokens.textPrimary,
                             cursorColor = MyTubeColors.AccentSkyBlue,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent
@@ -512,22 +515,15 @@ fun AlbumArtistCard(modifier: Modifier = Modifier, title: String, subtitle: Stri
         }
 
         // Bottom gradient scrim for text legibility
-        BoxWithConstraints(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color(0xDD0D0B0F)),
-                            startY = 0f,
-                            endY = Float.POSITIVE_INFINITY
-                        )
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Tokens.bgDeep.copy(alpha = 0.9f))
                     )
-            )
-        }
+                )
+        )
 
         Column(
             modifier = Modifier

@@ -95,4 +95,5 @@ dependencies {
 
     // DataStore (settings/preferences)
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("sh.calvin.reorderable:reorderable:2.1.1")
 }
