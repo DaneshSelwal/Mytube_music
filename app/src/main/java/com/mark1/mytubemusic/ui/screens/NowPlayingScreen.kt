@@ -136,14 +136,14 @@ fun SharedTransitionScope.NowPlayingScreen(
         }) {
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(animatedColor1.copy(alpha = 0.15f), Color.Transparent),
+                    colors = listOf(animVibrant.copy(alpha = 0.15f), Color.Transparent),
                     center = androidx.compose.ui.geometry.Offset(size.width * 0.2f, size.height * 0.2f),
                     radius = size.width * 1.2f
                 )
             )
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(animatedColor2.copy(alpha = 0.15f), Color.Transparent),
+                    colors = listOf(animMuted.copy(alpha = 0.15f), Color.Transparent),
                     center = androidx.compose.ui.geometry.Offset(size.width * 0.8f, size.height * 0.8f),
                     radius = size.width * 1.2f
                 )
@@ -472,7 +472,7 @@ fun SharedTransitionScope.NowPlayingScreen(
         }
     }
 
-    if (showSleepTimerDialog) {
+    if (showSleepTimerSheet) {
         AlertDialog(
             onDismissRequest = { showSleepTimerSheet = false },
             title = { Text("Sleep Timer", style = MyTubeTypography.titleLarge.copy(color = Tokens.textPrimary)) },
@@ -513,7 +513,7 @@ fun SharedTransitionScope.NowPlayingScreen(
         )
     }
 
-    if (showSpeedDialog) {
+    if (showSpeedSheet) {
         AlertDialog(
             onDismissRequest = { showSpeedSheet = false },
             title = { Text("Playback Speed", style = MyTubeTypography.titleLarge.copy(color = Tokens.textPrimary)) },
