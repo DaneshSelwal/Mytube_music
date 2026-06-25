@@ -1,0 +1,8 @@
+
+# Signing
+*.jks
+*.keystore
+keystore.properties
+
+# Unnecessary and build files
+app/build/
