@@ -6,8 +6,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -202,13 +206,13 @@ fun SharedTransitionScope.HomeScreen(
                         }
                     }
 
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = if (currentSong != null) 180.dp else 16.dp)
-                    ) {
-                        when (selectedTabIndex) {
-                            0 -> { // Songs
+                    when (selectedTabIndex) {
+                        0 -> {
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = if (currentSong != null) 180.dp else 16.dp)
+                            ) {
                                 item { SectionHeader("ALL SONGS (${filteredSongs.size})") }
                                 itemsIndexed(filteredSongs) { index, song ->
                                     val isCurrent = currentSong?.uri == song.uri
@@ -217,41 +221,31 @@ fun SharedTransitionScope.HomeScreen(
                                     })
                                 }
                             }
-                            1 -> { // Albums
-                                item { SectionHeader("ALBUMS (${albums.size})") }
-                                albums.forEach { (album, albumSongs) ->
-                                    item {
-                                        Text(
-                                            text = album,
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                                        )
-                                    }
-                                    itemsIndexed(albumSongs) { index, song ->
-                                        val isCurrent = currentSong?.uri == song.uri
-                                        SongItem(song = song, isCurrent = isCurrent, onClick = {
-                                            playerViewModel.playQueue(albumSongs, index)
-                                        })
+                        }
+                        1 -> { // Albums
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(2),
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = if (currentSong != null) 180.dp else 16.dp, start = 8.dp, end = 8.dp, top = 8.dp)
+                            ) {
+                                items(albums.entries.toList()) { (album, albumSongs) ->
+                                    val artist = albumSongs.firstOrNull()?.artist ?: "Unknown Artist"
+                                    AlbumArtistCard(title = album, subtitle = artist, song = albumSongs.firstOrNull()) {
+                                        playerViewModel.playQueue(albumSongs, 0)
                                     }
                                 }
                             }
-                            2 -> { // Artists
-                                item { SectionHeader("ARTISTS (${artists.size})") }
-                                artists.forEach { (artist, artistSongs) ->
-                                    item {
-                                        Text(
-                                            text = artist,
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                                        )
-                                    }
-                                    itemsIndexed(artistSongs) { index, song ->
-                                        val isCurrent = currentSong?.uri == song.uri
-                                        SongItem(song = song, isCurrent = isCurrent, onClick = {
-                                            playerViewModel.playQueue(artistSongs, index)
-                                        })
+                        }
+                        2 -> { // Artists
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(2),
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = if (currentSong != null) 180.dp else 16.dp, start = 8.dp, end = 8.dp, top = 8.dp)
+                            ) {
+                                items(artists.entries.toList()) { (artist, artistSongs) ->
+                                    val albumCount = artistSongs.map { it.album }.distinct().size
+                                    AlbumArtistCard(title = artist, subtitle = "$albumCount Album(s)", song = artistSongs.firstOrNull()) {
+                                        playerViewModel.playQueue(artistSongs, 0)
                                     }
                                 }
                             }
@@ -477,5 +471,77 @@ fun SharedTransitionScope.MiniPlayer(
             color = MyTubeColors.AccentSkyBlue,
             trackColor = Color.Transparent
         )
+    }
+}
+@Composable
+fun AlbumArtistCard(title: String, subtitle: String, song: Song?, onClick: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var artBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    
+    LaunchedEffect(song?.uri) {
+        if (song == null) return@LaunchedEffect
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val fileName = "art_${song.title.hashCode()}"
+            val cachedFile = java.io.File(context.cacheDir, "$fileName.jpg")
+            if (cachedFile.exists()) {
+                artBitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
+            } else {
+                try {
+                    val retriever = android.media.MediaMetadataRetriever()
+                    context.contentResolver.openFileDescriptor(android.net.Uri.parse(song.uri), "r")?.use { pfd ->
+                        retriever.setDataSource(pfd.fileDescriptor)
+                        val art = retriever.embeddedPicture
+                        if (art != null) {
+                            artBitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
+                        } else {
+                            val success = com.mark1.mytubemusic.util.ArtworkScraper.fetchAndSaveAlbumArt(
+                                "${song.title} ${song.artist}", 
+                                context.cacheDir, 
+                                fileName
+                            )
+                            if (success) {
+                                artBitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
+                            }
+                        }
+                    }
+                    retriever.release()
+                } catch (e: Exception) {}
+            }
+        }
+    }
+    
+    Column(
+        modifier = Modifier
+            .padding(8.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MyTubeColors.GlassSurface)
+            .clickable { onClick() }
+            .padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MyTubeColors.GlassBorder),
+            contentAlignment = Alignment.Center
+        ) {
+            if (artBitmap != null) {
+                androidx.compose.foundation.Image(
+                    bitmap = artBitmap!!,
+                    contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Icon(Icons.Default.MusicNote, contentDescription = null, tint = MyTubeColors.TextSecondary, modifier = Modifier.size(48.dp))
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(text = title, fontWeight = FontWeight.Bold, color = MyTubeColors.TextPrimary, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = subtitle, color = MyTubeColors.TextSecondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
