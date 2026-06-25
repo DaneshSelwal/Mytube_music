@@ -249,6 +249,43 @@ fun SharedTransitionScope.NowPlayingScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Timeline / Seekbar
+            val duration = currentSong?.duration?.takeIf { it > 0 } ?: 1L
+            var sliderPosition by remember(progress) { mutableFloatStateOf(progress.toFloat()) }
+            var isDragging by remember { mutableStateOf(false) }
+
+            fun Long.toFormatTime(): String = String.format("%02d:%02d", this / 1000 / 60, (this / 1000) % 60)
+
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Slider(
+                    value = if (isDragging) sliderPosition else progress.toFloat().coerceIn(0f, duration.toFloat()),
+                    onValueChange = { 
+                        sliderPosition = it
+                        isDragging = true 
+                    },
+                    onValueChangeFinished = {
+                        playerViewModel.seekTo(sliderPosition.toLong())
+                        isDragging = false
+                    },
+                    valueRange = 0f..duration.toFloat(),
+                    colors = SliderDefaults.colors(
+                        thumbColor = MyTubeColors.AccentSkyBlue,
+                        activeTrackColor = MyTubeColors.AccentSkyBlue,
+                        inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                    ),
+                    modifier = Modifier.fillMaxWidth().height(24.dp)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = if (isDragging) sliderPosition.toLong().toFormatTime() else progress.toFormatTime(), color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+                    Text(text = duration.toFormatTime(), color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+                }
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
 
             // Controls (Glassmorphism style)

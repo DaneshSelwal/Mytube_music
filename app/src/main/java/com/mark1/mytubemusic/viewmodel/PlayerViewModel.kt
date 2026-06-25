@@ -248,6 +248,10 @@ class PlayerViewModel : ViewModel() {
         player?.seekToDefaultPosition(index)
     }
 
+    fun seekTo(positionMs: Long) {
+        player?.seekTo(positionMs)
+    }
+
     fun toggleShuffleMode() {
         player?.let {
             it.shuffleModeEnabled = !it.shuffleModeEnabled
