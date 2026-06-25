@@ -95,11 +95,49 @@ fun SharedTransitionScope.NowPlayingScreen(
     val animatedColor1 by animateColorAsState(targetValue = backgroundColor1, animationSpec = tween(1000))
     val animatedColor2 by animateColorAsState(targetValue = backgroundColor2, animationSpec = tween(1000))
 
+    val pulseScale by animateFloatAsState(
+        targetValue = if (isPlaying) 1.0f + (0.05f * ((progress / 400) % 2L).toFloat()) else 1.0f,
+        animationSpec = tween(400, easing = FastOutSlowInEasing)
+    )
+
+    val infiniteTransition = rememberInfiniteTransition()
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(20000, easing = LinearEasing), RepeatMode.Restart)
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(animatedColor1, animatedColor2)))
+            .background(Color(0xFF0A0A12))
     ) {
+        Canvas(modifier = Modifier.fillMaxSize().graphicsLayer {
+            scaleX = pulseScale
+            scaleY = pulseScale
+            rotationZ = rotation
+        }) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(animatedColor1.copy(alpha = 0.5f), Color.Transparent),
+                    center = androidx.compose.ui.geometry.Offset(size.width * 0.2f, size.height * 0.2f),
+                    radius = size.width * 0.9f
+                )
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(animatedColor2.copy(alpha = 0.4f), Color.Transparent),
+                    center = androidx.compose.ui.geometry.Offset(size.width * 0.8f, size.height * 0.8f),
+                    radius = size.width * 1.0f
+                )
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(MyTubeColors.AccentSkyBlue.copy(alpha = 0.3f), Color.Transparent),
+                    center = androidx.compose.ui.geometry.Offset(size.width * 0.8f, size.height * 0.2f),
+                    radius = size.width * 0.7f
+                )
+            )
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -188,16 +226,21 @@ fun SharedTransitionScope.NowPlayingScreen(
             // Song Info
             Text(
                 text = currentSong?.title ?: "No Song",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.ExtraBold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                letterSpacing = (-0.5).sp,
                 color = Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = currentSong?.artist ?: "Unknown Artist",
                 fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                letterSpacing = 1.5.sp,
                 color = Color.White.copy(alpha = 0.7f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -512,9 +555,11 @@ fun LyricsView(lyrics: List<com.mark1.mytubemusic.utils.LyricLine>, currentProgr
             Text(
                 text = line.text,
                 color = if (isActive) MyTubeColors.AccentSkyBlue else Color.White.copy(alpha = 0.5f),
-                fontSize = if (isActive) 22.sp else 18.sp,
-                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                modifier = Modifier.padding(vertical = 8.dp),
+                fontSize = if (isActive) 26.sp else 20.sp,
+                fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Medium,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                letterSpacing = if (isActive) 0.sp else 0.5.sp,
+                modifier = Modifier.padding(vertical = 12.dp),
                 textAlign = TextAlign.Center
             )
         }

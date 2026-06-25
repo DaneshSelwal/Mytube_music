@@ -19,18 +19,24 @@ object PaletteExtractor {
                 if (art != null) {
                     val bitmap = BitmapFactory.decodeByteArray(art, 0, art.size)
                     Palette.from(bitmap).generate { palette ->
-                        val vibrant = palette?.vibrantSwatch?.rgb ?: android.graphics.Color.DKGRAY
-                        val darkVibrant = palette?.darkVibrantSwatch?.rgb ?: android.graphics.Color.BLACK
-                        onResult(Color(vibrant), Color(darkVibrant))
+                        val vibrant = palette?.vibrantSwatch?.rgb 
+                            ?: palette?.lightVibrantSwatch?.rgb
+                            ?: palette?.dominantSwatch?.rgb
+                            ?: android.graphics.Color.parseColor("#4A00E0")
+                        val secondary = palette?.lightMutedSwatch?.rgb 
+                            ?: palette?.mutedSwatch?.rgb
+                            ?: palette?.darkVibrantSwatch?.rgb
+                            ?: android.graphics.Color.parseColor("#8E2DE2")
+                        onResult(Color(vibrant), Color(secondary))
                     }
                 } else {
-                    onResult(Color.DarkGray, Color.Black)
+                    onResult(Color(0xFF4A00E0), Color(0xFF8E2DE2))
                 }
             }
             retriever.release()
         } catch (e: Exception) {
             e.printStackTrace()
-            onResult(Color.DarkGray, Color.Black)
+            onResult(Color(0xFF4A00E0), Color(0xFF8E2DE2))
         }
     }
 }
