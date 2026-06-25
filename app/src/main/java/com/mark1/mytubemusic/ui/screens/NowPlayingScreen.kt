@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.sp
 import com.mark1.mytubemusic.util.PaletteExtractor
 import com.mark1.mytubemusic.viewmodel.PlayerViewModel
 import com.mark1.mytubemusic.ui.theme.MyTubeColors
+import com.mark1.mytubemusic.data.model.Song
 import com.mark1.mytubemusic.ui.theme.Tokens
 import com.mark1.mytubemusic.ui.theme.MyTubeTypography
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
