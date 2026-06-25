@@ -143,6 +143,3 @@ fun SharedTransitionScope.DetailScreen(
         }
     }
 }
-}
-
-}

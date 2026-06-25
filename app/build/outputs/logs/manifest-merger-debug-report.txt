@@ -28,6 +28,7 @@ MERGED from [androidx.activity:activity:1.9.0] C:\Users\selwa\.gradle\caches\tra
 MERGED from [androidx.activity:activity-ktx:1.9.0] C:\Users\selwa\.gradle\caches\transforms-3\d296d2894d6b1b7d7829f82377cc6fd6\transformed\activity-ktx-1.9.0\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.compose.material3:material3-android:1.3.0] C:\Users\selwa\.gradle\caches\transforms-3\981b3299d59820b5a53d81f3381db42a\transformed\material3-release\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.activity:activity-compose:1.9.0] C:\Users\selwa\.gradle\caches\transforms-3\76344ab01bccb7177c2e568366b8ea0d\transformed\activity-compose-1.9.0\AndroidManifest.xml:2:1-7:12
+MERGED from [sh.calvin.reorderable:reorderable-android-debug:2.1.1] C:\Users\selwa\.gradle\caches\transforms-3\9f64e84c06b4c995c626fe641bd2ede0\transformed\reorderable-debug\AndroidManifest.xml:2:1-7:12
 MERGED from [io.coil-kt:coil-compose:2.6.0] C:\Users\selwa\.gradle\caches\transforms-3\351550a9a9cb81a27bee808badb7711e\transformed\coil-compose-2.6.0\AndroidManifest.xml:2:1-7:12
 MERGED from [io.coil-kt:coil-compose-base:2.6.0] C:\Users\selwa\.gradle\caches\transforms-3\c885c364a339c84415327ea2177c8ab7\transformed\coil-compose-base-2.6.0\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.compose.foundation:foundation-layout-android:1.7.4] C:\Users\selwa\.gradle\caches\transforms-3\34cc4abc015a1051a70c362cd1ed970f\transformed\foundation-layout-release\AndroidManifest.xml:2:1-7:12
@@ -257,6 +258,8 @@ MERGED from [androidx.compose.material3:material3-android:1.3.0] C:\Users\selwa\
 MERGED from [androidx.compose.material3:material3-android:1.3.0] C:\Users\selwa\.gradle\caches\transforms-3\981b3299d59820b5a53d81f3381db42a\transformed\material3-release\AndroidManifest.xml:20:5-44
 MERGED from [androidx.activity:activity-compose:1.9.0] C:\Users\selwa\.gradle\caches\transforms-3\76344ab01bccb7177c2e568366b8ea0d\transformed\activity-compose-1.9.0\AndroidManifest.xml:5:5-44
 MERGED from [androidx.activity:activity-compose:1.9.0] C:\Users\selwa\.gradle\caches\transforms-3\76344ab01bccb7177c2e568366b8ea0d\transformed\activity-compose-1.9.0\AndroidManifest.xml:5:5-44
+MERGED from [sh.calvin.reorderable:reorderable-android-debug:2.1.1] C:\Users\selwa\.gradle\caches\transforms-3\9f64e84c06b4c995c626fe641bd2ede0\transformed\reorderable-debug\AndroidManifest.xml:5:5-44
+MERGED from [sh.calvin.reorderable:reorderable-android-debug:2.1.1] C:\Users\selwa\.gradle\caches\transforms-3\9f64e84c06b4c995c626fe641bd2ede0\transformed\reorderable-debug\AndroidManifest.xml:5:5-44
 MERGED from [io.coil-kt:coil-compose:2.6.0] C:\Users\selwa\.gradle\caches\transforms-3\351550a9a9cb81a27bee808badb7711e\transformed\coil-compose-2.6.0\AndroidManifest.xml:5:5-44
 MERGED from [io.coil-kt:coil-compose:2.6.0] C:\Users\selwa\.gradle\caches\transforms-3\351550a9a9cb81a27bee808badb7711e\transformed\coil-compose-2.6.0\AndroidManifest.xml:5:5-44
 MERGED from [io.coil-kt:coil-compose-base:2.6.0] C:\Users\selwa\.gradle\caches\transforms-3\c885c364a339c84415327ea2177c8ab7\transformed\coil-compose-base-2.6.0\AndroidManifest.xml:5:5-44
