@@ -158,7 +158,10 @@ fun SharedTransitionScope.NowPlayingScreen(
                         isPlaying = isPlaying,
                         artBitmap = artBitmap,
                         modifier = Modifier
-                            .size(260.dp)
+                            .fillMaxWidth(0.85f)
+                            .aspectRatio(1f)
+                            .widthIn(max = 450.dp)
+                            .shadow(32.dp, CircleShape, spotColor = MyTubeColors.AccentSkyBlue.copy(alpha = 0.4f), ambientColor = MyTubeColors.AccentSkyBlue)
                             .sharedElement(
                                 state = rememberSharedContentState(key = "cd_art"),
                                 animatedVisibilityScope = animatedVisibilityScope,
@@ -429,11 +432,15 @@ fun SharedTransitionScope.SpinningCDAnimation(
                 MyTubeColors.CdIridescent3,
                 MyTubeColors.CdIridescent1
             )
-            for (i in 48..110 step 4) {
-                val color = colors[(i / 4) % colors.size]
+            val maxRadius = size.minDimension / 2
+            val minRadius = maxRadius * 0.35f
+            val step = (maxRadius - minRadius) / 16
+            
+            for (i in 0..15) {
+                val color = colors[i % colors.size]
                 drawCircle(
                     color = color,
-                    radius = i.dp.toPx(),
+                    radius = minRadius + (i * step),
                     style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx())
                 )
             }
@@ -449,7 +456,7 @@ fun SharedTransitionScope.SpinningCDAnimation(
 
         Box(
             modifier = Modifier
-                .size(88.dp)
+                .fillMaxSize(0.35f)
                 .clip(CircleShape)
                 .background(Brush.radialGradient(listOf(Color(0xFF0D0D1A), Color(0xFF1C1C3A)))),
             contentAlignment = Alignment.Center
@@ -473,7 +480,7 @@ fun SharedTransitionScope.SpinningCDAnimation(
 
         Box(
             modifier = Modifier
-                .size(10.dp)
+                .fillMaxSize(0.04f)
                 .clip(CircleShape)
                 .background(Color.White)
         )

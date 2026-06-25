@@ -136,7 +136,7 @@ class PlayerViewModel : ViewModel() {
                     title = metadata.title?.toString() ?: "Unknown",
                     artist = metadata.artist?.toString() ?: "Unknown",
                     album = metadata.albumTitle?.toString() ?: "Unknown",
-                    duration = 0L // Cannot easily get duration from timeline
+                    duration = metadata.extras?.getLong("duration") ?: 0L
                 )
             )
         }
@@ -150,12 +150,13 @@ class PlayerViewModel : ViewModel() {
             return
         }
         val metadata = mediaItem.mediaMetadata
+        val trueDuration = player?.duration?.takeIf { it > 0 } ?: metadata.extras?.getLong("duration") ?: 0L
         _currentSong.value = Song(
             uri = mediaItem.mediaId,
             title = metadata.title?.toString() ?: "Unknown",
             artist = metadata.artist?.toString() ?: "Unknown",
             album = metadata.albumTitle?.toString() ?: "Unknown",
-            duration = player?.duration?.takeIf { it > 0 } ?: 0L
+            duration = trueDuration
         )
         loadLyricsForUri(mediaItem.mediaId)
     }
@@ -189,10 +190,12 @@ class PlayerViewModel : ViewModel() {
 
     fun playSong(song: Song) {
         player?.let {
+            val extras = android.os.Bundle().apply { putLong("duration", song.duration) }
             val metadata = MediaMetadata.Builder()
                 .setTitle(song.title)
                 .setArtist(song.artist)
                 .setAlbumTitle(song.album)
+                .setExtras(extras)
                 .build()
                 
             val mediaItem = MediaItem.Builder()
@@ -209,10 +212,12 @@ class PlayerViewModel : ViewModel() {
     fun playQueue(songs: List<Song>, startIndex: Int = 0) {
         player?.let { p ->
             val mediaItems = songs.map { song ->
+                val extras = android.os.Bundle().apply { putLong("duration", song.duration) }
                 val metadata = MediaMetadata.Builder()
                     .setTitle(song.title)
                     .setArtist(song.artist)
                     .setAlbumTitle(song.album)
+                    .setExtras(extras)
                     .build()
                     
                 MediaItem.Builder()

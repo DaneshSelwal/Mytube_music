@@ -113,18 +113,11 @@ fun SharedTransitionScope.HomeScreen(
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             Column(modifier = Modifier.fillMaxSize()) {
                 
-                // Parallax Header
+                // Header
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp)
-                        .graphicsLayer {
-                            val offset = if (listState.layoutInfo.visibleItemsInfo.isNotEmpty()) {
-                                listState.firstVisibleItemScrollOffset.toFloat()
-                            } else 0f
-                            translationY = offset * 0.5f // Parallax effect
-                            alpha = 1f - (offset / 300f).coerceIn(0f, 1f)
-                        }
                 ) {
                     Text(
                         "My Library",
