@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" width="100" height="100" alt="MyTube Music Logo"/>
+# 🎵
 
 # MyTube Music
 
@@ -22,11 +22,7 @@
 
 ## Features
 
-<table>
-<tr>
-<td width="50%">
-
-**Playback**
+### Playback
 - Background playback via Media3 + ExoPlayer
 - Shake-to-skip (accelerometer)
 - Sleep timer with live countdown
@@ -34,41 +30,26 @@
 - Shuffle and repeat modes (Off / All / One)
 - Swipe left/right to skip tracks
 
-</td>
-<td width="50%">
-
-**Library**
+### Library
 - Scans local `/Music/` directory automatically
 - Tabs for Songs, Albums, and Artists
 - Search across your entire library
 - Album and artist detail views
 - Room database for fast access
 
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-**Now Playing**
+### Now Playing
 - Spinning vinyl record animation
 - Pulsing mesh gradient background (palette-synced)
 - Synced karaoke-style lyrics (.lrc files)
 - Drag-to-reorder queue
 - Swipe down to dismiss
 
-</td>
-<td width="50%">
-
-**Design**
+### Design
 - "Midnight Vinyl" dark theme
 - DM Serif Display + Inter typography
 - Glassmorphism MiniPlayer
 - Shimmer loading states
 - Haptic feedback throughout
-
-</td>
-</tr>
-</table>
 
 ---
 
