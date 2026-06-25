@@ -45,6 +45,17 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
         if (query.isBlank()) songs else songs.filter { it.title.contains(query, ignoreCase = true) || it.artist.contains(query, ignoreCase = true) }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    private val _selectedDetailTitle = MutableStateFlow("")
+    val selectedDetailTitle: StateFlow<String> = _selectedDetailTitle.asStateFlow()
+
+    private val _selectedDetailSongs = MutableStateFlow<List<Song>>(emptyList())
+    val selectedDetailSongs: StateFlow<List<Song>> = _selectedDetailSongs.asStateFlow()
+
+    fun selectDetail(title: String, songs: List<Song>) {
+        _selectedDetailTitle.value = title
+        _selectedDetailSongs.value = songs
+    }
+
 
     private val _isScanning = MutableStateFlow(false)
     val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()

@@ -24,8 +24,8 @@ import com.mark1.mytubemusic.data.db.AppDatabase
 import com.mark1.mytubemusic.repository.SongRepository
 import com.mark1.mytubemusic.ui.screens.HomeScreen
 import com.mark1.mytubemusic.ui.screens.NowPlayingScreen
-import com.mark1.mytubemusic.ui.screens.QueueScreen
 import com.mark1.mytubemusic.ui.screens.OnboardingScreen
+import com.mark1.mytubemusic.ui.screens.DetailScreen
 import com.mark1.mytubemusic.ui.theme.MyTubeMusicTheme
 import com.mark1.mytubemusic.viewmodel.LibraryViewModel
 import com.mark1.mytubemusic.viewmodel.PlayerViewModel
@@ -110,6 +110,9 @@ fun AppNavHost(libraryViewModel: LibraryViewModel, playerViewModel: PlayerViewMo
                     playerViewModel = playerViewModel,
                     onNavigateToNowPlaying = {
                         navController.navigate("now_playing")
+                    },
+                    onNavigateToDetail = {
+                        navController.navigate("detail")
                     }
                 )
             }
@@ -118,15 +121,18 @@ fun AppNavHost(libraryViewModel: LibraryViewModel, playerViewModel: PlayerViewMo
                     animatedVisibilityScope = this@composable,
                     playerViewModel = playerViewModel,
                     onBack = { navController.popBackStack() },
-                    onNavigateToQueue = { navController.navigate("queue") }
+                    onNavigateToQueue = { /* No-op since we use bottom sheet locally */ }
                 )
             }
-        composable("queue") {
-            QueueScreen(
-                playerViewModel = playerViewModel,
-                onBack = { navController.popBackStack() }
-            )
+            composable("detail") {
+                DetailScreen(
+                    animatedVisibilityScope = this@composable,
+                    libraryViewModel = libraryViewModel,
+                    playerViewModel = playerViewModel,
+                    onBack = { navController.popBackStack() },
+                    onNavigateToNowPlaying = { navController.navigate("now_playing") }
+                )
+            }
         }
-    }
     }
 }

@@ -5,18 +5,21 @@ import android.os.Build
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.mark1.mytubemusic.viewmodel.LibraryViewModel
+import com.mark1.mytubemusic.ui.theme.Tokens
+import com.mark1.mytubemusic.ui.theme.MyTubeTypography
 
 @Composable
 fun OnboardingScreen(viewModel: LibraryViewModel, onComplete: () -> Unit) {
@@ -42,27 +45,63 @@ fun OnboardingScreen(viewModel: LibraryViewModel, onComplete: () -> Unit) {
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Tokens.bgDeep, Tokens.bgSurface)
+                )
+            ),
+        contentAlignment = Alignment.Center
     ) {
-        Text("MyTube Music", color = MaterialTheme.colorScheme.primary, fontSize = 32.sp, fontWeight = FontWeight.Black)
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        if (isScanning) {
-            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Scanning your device...", color = MaterialTheme.colorScheme.onBackground)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(scanProgress, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f), fontSize = 12.sp, textAlign = TextAlign.Center)
-        } else {
-            Text("We need permission to automatically find the music on your device.", color = MaterialTheme.colorScheme.onBackground, textAlign = TextAlign.Center)
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { launcher.launch(permissionToRequest) }) {
-                Text("Grant Permission & Scan")
+        Column(
+            modifier = Modifier.padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "MyTube",
+                style = MyTubeTypography.displayLarge.copy(color = Tokens.accentPrimary)
+            )
+            Text(
+                text = "Music",
+                style = MyTubeTypography.titleLarge.copy(color = Tokens.textSecondary)
+            )
+            
+            Spacer(modifier = Modifier.height(48.dp))
+            
+            if (isScanning) {
+                CircularProgressIndicator(color = Tokens.accentPrimary)
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = "Discovering your music...",
+                    style = MyTubeTypography.bodyMedium.copy(color = Tokens.textPrimary)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = scanProgress,
+                    style = MyTubeTypography.labelSmall.copy(color = Tokens.textSecondary),
+                    textAlign = TextAlign.Center
+                )
+            } else {
+                Text(
+                    text = "Welcome to a premium audio experience. We need permission to automatically find the music on your device.",
+                    style = MyTubeTypography.bodyMedium.copy(color = Tokens.textSecondary),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+                Button(
+                    onClick = { launcher.launch(permissionToRequest) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Tokens.accentPrimary,
+                        contentColor = Tokens.bgDeep
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                ) {
+                    Text("Grant Permission & Scan", style = MyTubeTypography.bodyMedium)
+                }
             }
         }
     }
 }
-

@@ -13,21 +13,25 @@ This document outlines the current state, architecture, and features of the **My
 The app follows an MVVM (Model-View-ViewModel) architecture paired with a background MediaService for continuous playback.
 
 ### A. UI Layer (Jetpack Compose)
-All screens are built using Jetpack Compose and Material 3, heavily utilizing `StateFlow` observation for reactive UI updates.
-- **`MainActivity.kt`**: The entry point. It dynamically checks for `READ_MEDIA_AUDIO` (Android 13+) or `READ_EXTERNAL_STORAGE` permissions upon launch. If granted, it routes directly to `home`; otherwise, it routes to `onboarding`.
-- **`OnboardingScreen.kt`**: A simple screen designed to request file access permissions from the user.
+All screens are built using Jetpack Compose and Material 3, heavily utilizing `StateFlow` observation for reactive UI updates and `SharedTransitionScope` for seamless navigation animations between screens.
+- **`MainActivity.kt`**: The entry point. Dynamically checks for `READ_MEDIA_AUDIO` (Android 13+) or `READ_EXTERNAL_STORAGE` permissions upon launch.
+- **`OnboardingScreen.kt`**: A premium, "Midnight Vinyl" styled screen designed to request file access permissions from the user with deep gradients and modern typography.
 - **`HomeScreen.kt`**: 
-  - Features a dynamic, state-driven global `MyTubeColors` theme allowing instant switching between Dark and Light Mode via a top-right icon.
-  - Displays the entire scanned local music library with tabs for Songs, Albums, and Artists. 
-  - Albums and Artists are displayed in a sleek `LazyVerticalGrid` of `AlbumArtistCard`s.
-  - Songs fetch album art asynchronously from `MediaStore` or fallback to scraping Google Images (`ArtworkScraper`).
-  - Includes a glassmorphism floating square `MiniPlayer` docked at the bottom-right corner when a song is actively playing, complete with Next/Prev/Play/Pause controls.
+  - Features the "Midnight Vinyl" design system (`Tokens` and `MyTubeTypography`) with deep backgrounds, glassmorphism (`Tokens.glassTint`), and vibrant accents.
+  - Fully responsive to Landscape and Portrait modes.
+  - Displays the entire scanned local music library with an animated pill-shaped TabRow for Songs, Albums, and Artists.
+  - Albums and Artists are displayed in a sleek `LazyVerticalGrid` of `AlbumArtistCard`s with gradient scrims.
+  - `SongItem`s feature active playing indicators (gradient bars) and elegant typography.
+  - Includes a sleek, rounded `MiniPlayer` docked at the bottom with embedded `SharedTransition` elements for album art, play controls, and a bottom progress bar.
 - **`NowPlayingScreen.kt`**: 
-  - The main playback UI. Features a rotating vinyl record animation for the album art with dynamic drop-shadows.
-  - The background is an immersive, pulsating mesh gradient (`Canvas` with `Brush.radialGradient`) that automatically syncs to the beat/progress of the playing song.
-  - Typography is styled in aesthetic, magazine-like `Serif Italic` for the title and `SansSerif Italic` for the artist.
-  - Incorporates a `LyricsView` parser that reads local `.lrc` files to display synced karaoke-style lyrics.
-- **`QueueScreen.kt`**: Displays the active playlist queue. Highlights the currently playing song and allows users to tap any song in the list to instantly skip to it.
+  - The main playback UI. Adaptable to both Landscape and Portrait orientations using fluid layouts.
+  - Features a rotating vinyl record animation for the album art (`SpinningCDAnimation` customized as a vinyl record).
+  - Immersive, pulsating mesh gradient background synced to the beat/progress of the playing song.
+  - Typography is styled in aesthetic, magazine-like `DM Serif Display` and `Inter` via `Tokens`.
+  - Incorporates `LyricsView` parser that reads local `.lrc` files to display synced karaoke-style lyrics with smooth animations.
+  - Integrated with `LocalHapticFeedback` to provide tactile responses (long press / subtle ticks) on play controls and UI interactions.
+  - Features quick-action chips/buttons for Toggling Lyrics and Sleep Timer settings.
+- **`QueueBottomSheet`**: Replaced the standalone `QueueScreen` with an elegant `ModalBottomSheet` directly accessible from `NowPlayingScreen` for better context preservation and UX. Displays the active playlist queue.
 
 ### B. Presentation Layer (ViewModels)
 - **`LibraryViewModel.kt`**: Handles file discovery. It queries the Android `MediaStore` specifically for audio files located in `/sdcard/Music/`. It extracts custom artist info from file names if standard metadata is missing.

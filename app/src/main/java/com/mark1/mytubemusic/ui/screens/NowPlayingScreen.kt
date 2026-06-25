@@ -58,6 +58,10 @@ import androidx.compose.ui.unit.sp
 import com.mark1.mytubemusic.utils.PaletteExtractor
 import com.mark1.mytubemusic.viewmodel.PlayerViewModel
 import com.mark1.mytubemusic.ui.theme.MyTubeColors
+import com.mark1.mytubemusic.ui.theme.Tokens
+import com.mark1.mytubemusic.ui.theme.MyTubeTypography
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -82,6 +86,7 @@ fun SharedTransitionScope.NowPlayingScreen(
     var showSleepTimerDialog by remember { mutableStateOf(false) }
     var showSpeedDialog by remember { mutableStateOf(false) }
     var showLyrics by remember { mutableStateOf(false) }
+    var showQueueSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentSong?.uri) {
         currentSong?.uri?.let { uri ->
@@ -109,8 +114,9 @@ fun SharedTransitionScope.NowPlayingScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MyTubeColors.BackgroundDeep)
+            .background(Tokens.bgDeep)
     ) {
+        // Glowing animated background based on palette
         Canvas(modifier = Modifier.fillMaxSize().graphicsLayer {
             scaleX = pulseScale
             scaleY = pulseScale
@@ -118,28 +124,29 @@ fun SharedTransitionScope.NowPlayingScreen(
         }) {
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(animatedColor1.copy(alpha = 0.5f), Color.Transparent),
+                    colors = listOf(animatedColor1.copy(alpha = 0.15f), Color.Transparent),
                     center = androidx.compose.ui.geometry.Offset(size.width * 0.2f, size.height * 0.2f),
-                    radius = size.width * 0.9f
+                    radius = size.width * 1.2f
                 )
             )
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(animatedColor2.copy(alpha = 0.4f), Color.Transparent),
+                    colors = listOf(animatedColor2.copy(alpha = 0.15f), Color.Transparent),
                     center = androidx.compose.ui.geometry.Offset(size.width * 0.8f, size.height * 0.8f),
-                    radius = size.width * 1.0f
+                    radius = size.width * 1.2f
                 )
             )
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(MyTubeColors.AccentSkyBlue.copy(alpha = 0.3f), Color.Transparent),
-                    center = androidx.compose.ui.geometry.Offset(size.width * 0.8f, size.height * 0.2f),
-                    radius = size.width * 0.7f
+                    colors = listOf(Tokens.accentPrimary.copy(alpha = 0.08f), Color.Transparent),
+                    center = androidx.compose.ui.geometry.Offset(size.width * 0.5f, size.height * 0.5f),
+                    radius = size.width * 0.8f
                 )
             )
         }
         val configuration = androidx.compose.ui.platform.LocalConfiguration.current
         val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        val haptic = LocalHapticFeedback.current
 
         val topBar = @Composable {
             Row(
@@ -148,10 +155,10 @@ fun SharedTransitionScope.NowPlayingScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Back", tint = MyTubeColors.TextPrimary, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Back", tint = Tokens.textPrimary, modifier = Modifier.size(32.dp))
                 }
-                IconButton(onClick = onNavigateToQueue) {
-                    Icon(Icons.Default.List, contentDescription = "Queue", tint = MyTubeColors.TextPrimary, modifier = Modifier.size(32.dp))
+                IconButton(onClick = { showQueueSheet = true }) {
+                    Icon(Icons.Default.List, contentDescription = "Queue", tint = Tokens.textPrimary, modifier = Modifier.size(32.dp))
                 }
             }
         }
@@ -219,35 +226,49 @@ fun SharedTransitionScope.NowPlayingScreen(
             Column(horizontalAlignment = if (isLandscape) Alignment.Start else Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = currentSong?.title ?: "No Song",
-                    fontSize = if (isLandscape) 24.sp else 32.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                    letterSpacing = (-0.5).sp,
-                    color = MyTubeColors.TextPrimary,
+                    style = MyTubeTypography.displayLarge.copy(color = Tokens.textPrimary),
+                    fontSize = if (isLandscape) 28.sp else 32.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = currentSong?.artist ?: "Unknown Artist",
-                    fontSize = if (isLandscape) 16.sp else 18.sp,
-                    fontWeight = FontWeight.Medium,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                    letterSpacing = 1.5.sp,
-                    color = MyTubeColors.TextSecondary,
+                    style = MyTubeTypography.titleLarge.copy(color = Tokens.textSecondary),
+                    fontSize = if (isLandscape) 18.sp else 20.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 if (currentLyrics.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
+                    Row {
+                        Text(
+                            text = if (showLyrics) "Hide Lyrics" else "Show Lyrics",
+                            style = MyTubeTypography.labelSmall.copy(color = Tokens.accentPrimary),
+                            modifier = Modifier.clickable { 
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                showLyrics = !showLyrics 
+                            }.padding(8.dp).background(Tokens.glassTint, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Sleep Timer",
+                            style = MyTubeTypography.labelSmall.copy(color = Tokens.textSecondary),
+                            modifier = Modifier.clickable { 
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                showSleepTimerDialog = true 
+                            }.padding(8.dp).background(Tokens.glassTint, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = if (showLyrics) "Hide Lyrics" else "Show Lyrics",
-                        color = MyTubeColors.AccentSkyBlue,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable { showLyrics = !showLyrics }.padding(8.dp)
+                        text = "Sleep Timer",
+                        style = MyTubeTypography.labelSmall.copy(color = Tokens.textSecondary),
+                        modifier = Modifier.clickable { 
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            showSleepTimerDialog = true 
+                        }.padding(8.dp).background(Tokens.glassTint, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
             }
@@ -310,9 +331,9 @@ fun SharedTransitionScope.NowPlayingScreen(
                     },
                     valueRange = 0f..duration.toFloat(),
                     colors = SliderDefaults.colors(
-                        thumbColor = MyTubeColors.AccentSkyBlue,
-                        activeTrackColor = MyTubeColors.AccentSkyBlue,
-                        inactiveTrackColor = MyTubeColors.TextPrimary.copy(alpha = 0.3f)
+                        thumbColor = Tokens.accentSecondary,
+                        activeTrackColor = Tokens.accentPrimary,
+                        inactiveTrackColor = Tokens.strokeSubtle
                     ),
                     modifier = Modifier.fillMaxWidth().height(24.dp)
                 )
@@ -320,42 +341,66 @@ fun SharedTransitionScope.NowPlayingScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = if (isDragging) sliderPosition.toLong().toFormatTime() else progress.toFormatTime(), color = MyTubeColors.TextPrimary.copy(alpha = 0.6f), fontSize = 12.sp)
-                    Text(text = duration.toFormatTime(), color = MyTubeColors.TextPrimary.copy(alpha = 0.6f), fontSize = 12.sp)
+                    Text(text = if (isDragging) sliderPosition.toLong().toFormatTime() else progress.toFormatTime(), style = MyTubeTypography.labelSmall.copy(color = Tokens.textDisabled))
+                    Text(text = duration.toFormatTime(), style = MyTubeTypography.labelSmall.copy(color = Tokens.textDisabled))
                 }
             }
         }
 
         val mainControls = @Composable {
             Surface(
-                color = MyTubeColors.TextPrimary.copy(alpha = 0.1f),
+                color = Tokens.bgSurface,
                 shape = RoundedCornerShape(24.dp),
-                modifier = Modifier.fillMaxWidth().height(if (isLandscape) 80.dp else 100.dp)
+                modifier = Modifier.fillMaxWidth().height(if (isLandscape) 80.dp else 100.dp).border(1.dp, Tokens.strokeSubtle, RoundedCornerShape(24.dp))
             ) {
                 Row(
                     modifier = Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { playerViewModel.toggleShuffleMode() }) {
-                        Icon(Icons.Default.Shuffle, contentDescription = "Shuffle", tint = if (shuffleModeEnabled) MyTubeColors.AccentSkyBlue else MyTubeColors.TextSecondary, modifier = Modifier.size(32.dp))
+                    IconButton(onClick = { 
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        playerViewModel.toggleShuffleMode() 
+                    }) {
+                        Icon(Icons.Default.Shuffle, contentDescription = "Shuffle", tint = if (shuffleModeEnabled) Tokens.accentPrimary else Tokens.textDisabled, modifier = Modifier.size(28.dp))
                     }
-                    IconButton(onClick = { playerViewModel.skipToPrevious() }) {
-                        Icon(Icons.Default.SkipPrevious, contentDescription = "Previous", tint = MyTubeColors.TextPrimary, modifier = Modifier.size(48.dp))
+                    IconButton(onClick = { 
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        playerViewModel.skipToPrevious() 
+                    }) {
+                        Icon(Icons.Default.SkipPrevious, contentDescription = "Previous", tint = Tokens.textPrimary, modifier = Modifier.size(42.dp))
                     }
-                    IconButton(onClick = { playerViewModel.togglePlayPause() }) {
-                        Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = "Play/Pause", tint = MyTubeColors.TextPrimary, modifier = Modifier.size(64.dp))
+                    // Play/Pause glowing button
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .shadow(12.dp, CircleShape, spotColor = Tokens.accentPrimary)
+                            .clip(CircleShape)
+                            .background(Tokens.accentPrimary)
+                            .clickable { 
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                playerViewModel.togglePlayPause() 
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = "Play/Pause", tint = Tokens.bgDeep, modifier = Modifier.size(40.dp))
                     }
-                    IconButton(onClick = { playerViewModel.skipToNext() }) {
-                        Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = MyTubeColors.TextPrimary, modifier = Modifier.size(48.dp))
+                    IconButton(onClick = { 
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        playerViewModel.skipToNext() 
+                    }) {
+                        Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = Tokens.textPrimary, modifier = Modifier.size(42.dp))
                     }
-                    IconButton(onClick = { playerViewModel.cycleRepeatMode() }) {
+                    IconButton(onClick = { 
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        playerViewModel.cycleRepeatMode() 
+                    }) {
                         val (icon, tint) = when (repeatMode) {
-                            Player.REPEAT_MODE_ONE -> Icons.Default.RepeatOne to MyTubeColors.AccentSkyBlue
-                            Player.REPEAT_MODE_ALL -> Icons.Default.Repeat to MyTubeColors.AccentSkyBlue
-                            else -> Icons.Default.Repeat to MyTubeColors.TextSecondary
+                            Player.REPEAT_MODE_ONE -> Icons.Default.RepeatOne to Tokens.accentPrimary
+                            Player.REPEAT_MODE_ALL -> Icons.Default.Repeat to Tokens.accentPrimary
+                            else -> Icons.Default.Repeat to Tokens.textDisabled
                         }
-                        Icon(icon, contentDescription = "Repeat", tint = tint, modifier = Modifier.size(32.dp))
+                        Icon(icon, contentDescription = "Repeat", tint = tint, modifier = Modifier.size(28.dp))
                     }
                 }
             }
@@ -418,40 +463,78 @@ fun SharedTransitionScope.NowPlayingScreen(
     if (showSleepTimerDialog) {
         AlertDialog(
             onDismissRequest = { showSleepTimerDialog = false },
-            title = { Text("Sleep Timer") },
+            title = { Text("Sleep Timer", style = MyTubeTypography.titleLarge.copy(color = Tokens.textPrimary)) },
             text = {
                 Column {
-                    listOf(5, 10, 15, 30, 60).forEach { mins ->
-                        TextButton(onClick = { 
-                            playerViewModel.setSleepTimer(mins)
-                            showSleepTimerDialog = false
-                        }) { Text("$mins Minutes") }
+                    listOf(15, 30, 45, 60).forEach { minutes ->
+                        Text(
+                            text = "$minutes Minutes",
+                            style = MyTubeTypography.bodyMedium.copy(color = Tokens.textSecondary),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    playerViewModel.setSleepTimer(minutes)
+                                    showSleepTimerDialog = false
+                                }
+                                .padding(16.dp)
+                        )
                     }
-                    TextButton(onClick = { 
-                        playerViewModel.setSleepTimer(0)
-                        showSleepTimerDialog = false
-                    }) { Text("Turn Off") }
+                    Text(
+                        text = "Turn Off",
+                        style = MyTubeTypography.bodyMedium.copy(color = Tokens.accentPrimary),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                playerViewModel.setSleepTimer(0)
+                                showSleepTimerDialog = false
+                            }
+                            .padding(16.dp)
+                    )
                 }
             },
-            confirmButton = {}
+            confirmButton = {
+                TextButton(onClick = { showSleepTimerDialog = false }) {
+                    Text("Cancel", style = MyTubeTypography.bodyMedium.copy(color = Tokens.accentPrimary))
+                }
+            },
+            containerColor = Tokens.bgElevated
         )
     }
 
     if (showSpeedDialog) {
         AlertDialog(
             onDismissRequest = { showSpeedDialog = false },
-            title = { Text("Playback Speed") },
+            title = { Text("Playback Speed", style = MyTubeTypography.titleLarge.copy(color = Tokens.textPrimary)) },
             text = {
                 Column {
                     listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f).forEach { speed ->
-                        TextButton(onClick = { 
-                            playerViewModel.setPlaybackSpeed(speed)
-                            showSpeedDialog = false
-                        }) { Text("${speed}x") }
+                        Text(
+                            text = "${speed}x",
+                            style = MyTubeTypography.bodyMedium.copy(color = Tokens.textSecondary),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    playerViewModel.setPlaybackSpeed(speed)
+                                    showSpeedDialog = false
+                                }
+                                .padding(16.dp)
+                        )
                     }
                 }
             },
-            confirmButton = {}
+            confirmButton = {
+                TextButton(onClick = { showSpeedDialog = false }) {
+                    Text("Cancel", style = MyTubeTypography.bodyMedium.copy(color = Tokens.accentPrimary))
+                }
+            },
+            containerColor = Tokens.bgElevated
+        )
+    }
+
+    if (showQueueSheet) {
+        QueueBottomSheet(
+            playerViewModel = playerViewModel,
+            onDismissRequest = { showQueueSheet = false }
         )
     }
 }
@@ -492,44 +575,41 @@ fun SharedTransitionScope.SpinningCDAnimation(
         modifier = modifier
             .graphicsLayer { rotationZ = rotation.value }
             .clip(CircleShape)
-            .border(2.dp, MyTubeColors.CdChromeRim, CircleShape)
-            .background(Color(0xFF1A1A2E)),
+            .border(1.dp, Tokens.strokeSubtle, CircleShape)
+            .background(Tokens.bgDeep),
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val colors = listOf(
-                MyTubeColors.CdIridescent1,
-                MyTubeColors.CdIridescent2,
-                MyTubeColors.CdIridescent3,
-                MyTubeColors.CdIridescent1
-            )
             val maxRadius = size.minDimension / 2
             val minRadius = maxRadius * 0.35f
-            val step = (maxRadius - minRadius) / 16
+            val step = (maxRadius - minRadius) / 12
             
-            for (i in 0..15) {
-                val color = colors[i % colors.size]
+            // Vinyl grooves
+            for (i in 0..11) {
                 drawCircle(
-                    color = color,
+                    color = Color.White.copy(alpha = 0.05f),
                     radius = minRadius + (i * step),
-                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx())
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1f)
                 )
             }
             
+            // Subtle vinyl shine
             drawArc(
-                color = MyTubeColors.TextPrimary.copy(alpha = 0.12f),
+                color = Color.White.copy(alpha = 0.08f),
                 startAngle = 210f,
-                sweepAngle = 45f,
+                sweepAngle = 30f,
                 useCenter = false,
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.dp.toPx())
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 8.dp.toPx())
             )
         }
 
+        // Center label (album art + record center hole)
         Box(
             modifier = Modifier
-                .fillMaxSize(0.35f)
+                .fillMaxSize(0.4f)
                 .clip(CircleShape)
-                .background(Brush.radialGradient(listOf(Color(0xFF0D0D1A), Color(0xFF1C1C3A)))),
+                .border(2.dp, Tokens.bgDeep, CircleShape)
+                .background(Tokens.bgSurface),
             contentAlignment = Alignment.Center
         ) {
             if (artBitmap != null) {
@@ -543,18 +623,19 @@ fun SharedTransitionScope.SpinningCDAnimation(
                 Icon(
                     imageVector = Icons.Default.MusicNote,
                     contentDescription = null,
-                    tint = MyTubeColors.AccentSkyBlue,
+                    tint = Tokens.textDisabled,
                     modifier = Modifier.size(32.dp)
                 )
             }
+            
+            // The hole in the middle
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(0.12f)
+                    .clip(CircleShape)
+                    .background(Tokens.bgDeep)
+            )
         }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize(0.04f)
-                .clip(CircleShape)
-                .background(MyTubeColors.TextPrimary)
-        )
     }
 }
 
@@ -581,11 +662,8 @@ fun LyricsView(lyrics: List<com.mark1.mytubemusic.utils.LyricLine>, currentProgr
             val isActive = index == activeIndex
             Text(
                 text = line.text,
-                color = if (isActive) MyTubeColors.AccentSkyBlue else MyTubeColors.TextSecondary,
-                fontSize = if (isActive) 26.sp else 20.sp,
-                fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Medium,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
-                letterSpacing = if (isActive) 0.sp else 0.5.sp,
+                style = if (isActive) MyTubeTypography.titleLarge else MyTubeTypography.bodyMedium,
+                color = if (isActive) Tokens.accentPrimary else Tokens.textSecondary,
                 modifier = Modifier.padding(vertical = 12.dp),
                 textAlign = TextAlign.Center
             )

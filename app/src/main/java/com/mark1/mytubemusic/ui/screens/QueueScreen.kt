@@ -23,43 +23,30 @@ import androidx.compose.ui.unit.sp
 import com.mark1.mytubemusic.data.model.Song
 import com.mark1.mytubemusic.viewmodel.PlayerViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QueueScreen(playerViewModel: PlayerViewModel, onBack: () -> Unit) {
+fun QueueBottomSheet(playerViewModel: PlayerViewModel, onDismissRequest: () -> Unit) {
     val queue by playerViewModel.queue.collectAsState()
     val currentSong by playerViewModel.currentSong.collectAsState()
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = Color(0xFF121212) // Dark background for queue
+    ModalBottomSheet(
+        onDismissRequest = onDismissRequest,
+        containerColor = com.mark1.mytubemusic.ui.theme.Tokens.bgElevated,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 24.dp)
+                .fillMaxWidth()
+                .padding(bottom = 24.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Back", tint = Color.White, modifier = Modifier.size(32.dp))
-                }
-                Text(
-                    text = "Playing Queue",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    modifier = Modifier.padding(start = 16.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Playing Queue",
+                style = com.mark1.mytubemusic.ui.theme.MyTubeTypography.titleLarge.copy(color = com.mark1.mytubemusic.ui.theme.Tokens.textPrimary),
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+            )
 
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 itemsIndexed(queue) { index, song ->
                     val isPlaying = currentSong?.uri == song.uri
@@ -80,26 +67,25 @@ fun QueueItem(song: Song, isPlaying: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isPlaying) Color.White.copy(alpha = 0.2f) else Color.Transparent)
-            .padding(8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .background(if (isPlaying) com.mark1.mytubemusic.ui.theme.Tokens.glassTint else Color.Transparent, RoundedCornerShape(12.dp))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = song.title,
-                fontSize = 16.sp,
-                fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Normal,
-                color = if (isPlaying) MaterialTheme.colorScheme.primary else Color.White,
+                style = com.mark1.mytubemusic.ui.theme.MyTubeTypography.bodyMedium.copy(
+                    fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isPlaying) com.mark1.mytubemusic.ui.theme.Tokens.accentPrimary else com.mark1.mytubemusic.ui.theme.Tokens.textPrimary
+                ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = song.artist,
-                fontSize = 14.sp,
-                color = Color.White.copy(alpha = 0.7f),
+                style = com.mark1.mytubemusic.ui.theme.MyTubeTypography.labelSmall.copy(color = com.mark1.mytubemusic.ui.theme.Tokens.textSecondary),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

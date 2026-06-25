@@ -43,14 +43,24 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mark1.mytubemusic.R
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import com.mark1.mytubemusic.data.model.Song
 import com.mark1.mytubemusic.viewmodel.LibraryViewModel
 import com.mark1.mytubemusic.viewmodel.PlayerViewModel
 import com.mark1.mytubemusic.ui.theme.MyTubeColors
+import com.mark1.mytubemusic.ui.theme.Tokens
+import com.mark1.mytubemusic.ui.theme.MyTubeTypography
 import kotlin.math.abs
 
 fun getSongColorHash(title: String): Color {
@@ -83,9 +93,65 @@ fun ShimmerEffect(modifier: Modifier = Modifier) {
 @Composable
 fun SectionHeader(title: String) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)) {
-        Box(modifier = Modifier.width(4.dp).height(20.dp).background(MyTubeColors.AccentSkyBlue, RoundedCornerShape(2.dp)))
+        Box(modifier = Modifier.width(4.dp).height(20.dp).background(Tokens.accentPrimary, RoundedCornerShape(2.dp)))
         Spacer(modifier = Modifier.width(8.dp))
-        Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        Text(title, color = Tokens.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+    }
+}
+
+@Composable
+fun ShimmerSongItem() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .background(Tokens.bgElevated, RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(8.dp))
+        ) {
+            ShimmerEffect(Modifier.fillMaxSize())
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Box(Modifier.fillMaxWidth(0.7f).height(16.dp).clip(RoundedCornerShape(4.dp))) {
+                ShimmerEffect(Modifier.fillMaxSize())
+            }
+            Spacer(Modifier.height(8.dp))
+            Box(Modifier.fillMaxWidth(0.4f).height(12.dp).clip(RoundedCornerShape(4.dp))) {
+                ShimmerEffect(Modifier.fillMaxSize())
+            }
+        }
+    }
+}
+
+@Composable
+fun EmptyLibrary() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.MusicNote,
+            contentDescription = null,
+            tint = Tokens.textDisabled,
+            modifier = Modifier.size(64.dp)
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Your library is empty",
+            style = MyTubeTypography.titleLarge.copy(color = Tokens.textSecondary)
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "Try rescanning your device to find music.",
+            style = MyTubeTypography.bodyMedium.copy(color = Tokens.textDisabled)
+        )
     }
 }
 
@@ -95,7 +161,8 @@ fun SharedTransitionScope.HomeScreen(
     animatedVisibilityScope: AnimatedVisibilityScope,
     libraryViewModel: LibraryViewModel,
     playerViewModel: PlayerViewModel,
-    onNavigateToNowPlaying: () -> Unit
+    onNavigateToNowPlaying: () -> Unit,
+    onNavigateToDetail: () -> Unit
 ) {
     val songs by libraryViewModel.allSongs.collectAsState()
     val isScanning by libraryViewModel.isScanning.collectAsState()
@@ -125,48 +192,39 @@ fun SharedTransitionScope.HomeScreen(
             Column(modifier = Modifier.fillMaxSize()) {
                 
                 // Header
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                ) {
-                    Text(
-                        "My Library",
-                        fontSize = 36.sp,
-                        fontWeight = FontWeight.Black,
-                        color = MyTubeColors.TextPrimary,
-                        modifier = Modifier.padding(start = 24.dp, top = 48.dp).align(Alignment.CenterStart)
+                @OptIn(ExperimentalMaterial3Api::class)
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text("MyTube", style = MyTubeTypography.titleLarge, color = Tokens.accentPrimary)
+                            Text("Music", style = MyTubeTypography.labelSmall)
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { MyTubeColors.isDarkTheme = !MyTubeColors.isDarkTheme }) {
+                            AnimatedContent(targetState = MyTubeColors.isDarkTheme, label = "ThemeToggle") { dark ->
+                                Icon(
+                                    imageVector = if (dark) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                    contentDescription = "Toggle Theme",
+                                    tint = Tokens.accentPrimary
+                                )
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Tokens.bgSurface
                     )
-                    IconButton(
-                        onClick = { MyTubeColors.isDarkTheme = !MyTubeColors.isDarkTheme },
-                        modifier = Modifier.padding(end = 16.dp, top = 48.dp).align(Alignment.CenterEnd)
-                    ) {
-                        Icon(
-                            imageVector = if (MyTubeColors.isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = "Toggle Theme",
-                            tint = MyTubeColors.TextPrimary
-                        )
-                    }
-                }
+                )
 
                 if (isScanning) {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(8) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(80.dp)
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                            ) {
-                                ShimmerEffect(modifier = Modifier.fillMaxSize())
-                            }
+                            ShimmerSongItem()
                         }
                     }
                 } else if (songs.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No songs found. Try rescanning your device.", color = Color.White.copy(alpha = 0.5f))
-                    }
+                    EmptyLibrary()
                 } else {
                     OutlinedTextField(
                         value = searchQuery,
@@ -186,25 +244,49 @@ fun SharedTransitionScope.HomeScreen(
                         shape = RoundedCornerShape(24.dp)
                     )
 
-                    TabRow(
-                        selectedTabIndex = selectedTabIndex,
-                        containerColor = Color.Transparent,
-                        contentColor = MyTubeColors.AccentSkyBlue,
-                        indicator = { tabPositions ->
-                            TabRowDefaults.SecondaryIndicator(
-                                Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                                color = MyTubeColors.AccentSkyBlue
-                            )
-                        }
+                    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+                    val screenWidth = configuration.screenWidthDp.dp
+                    
+                    val indicatorOffset by animateDpAsState(
+                        targetValue = (screenWidth / tabs.size) * selectedTabIndex,
+                        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f)
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp)
+                            .padding(horizontal = 16.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Tokens.bgSurface)
                     ) {
-                        tabs.forEachIndexed { index, title ->
-                            Tab(
-                                selected = selectedTabIndex == index,
-                                onClick = { selectedTabIndex = index },
-                                text = { Text(title, color = if (selectedTabIndex == index) MyTubeColors.AccentSkyBlue else Color.White.copy(alpha = 0.5f)) }
-                            )
+                        // Sliding pill
+                        Box(
+                            modifier = Modifier
+                                .width((screenWidth - 32.dp) / tabs.size)
+                                .fillMaxHeight()
+                                .offset(x = indicatorOffset)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Tokens.glassTint)
+                                .border(1.dp, Tokens.accentPrimary.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+                        )
+                        Row(Modifier.fillMaxSize()) {
+                            tabs.forEachIndexed { index, title ->
+                                Box(
+                                    modifier = Modifier.weight(1f).fillMaxHeight().clickable { selectedTabIndex = index },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = title,
+                                        style = MyTubeTypography.bodyMedium,
+                                        color = if (selectedTabIndex == index) Tokens.accentPrimary else Tokens.textSecondary,
+                                        fontWeight = if (selectedTabIndex == index) FontWeight.SemiBold else FontWeight.Normal
+                                    )
+                                }
+                            }
                         }
                     }
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     when (selectedTabIndex) {
                         0 -> {
@@ -231,7 +313,8 @@ fun SharedTransitionScope.HomeScreen(
                                 items(albums.entries.toList()) { (album, albumSongs) ->
                                     val artist = albumSongs.firstOrNull()?.artist ?: "Unknown Artist"
                                     AlbumArtistCard(title = album, subtitle = artist, song = albumSongs.firstOrNull()) {
-                                        playerViewModel.playQueue(albumSongs, 0)
+                                        libraryViewModel.selectDetail(album, albumSongs)
+                                        onNavigateToDetail()
                                     }
                                 }
                             }
@@ -245,7 +328,8 @@ fun SharedTransitionScope.HomeScreen(
                                 items(artists.entries.toList()) { (artist, artistSongs) ->
                                     val albumCount = artistSongs.map { it.album }.distinct().size
                                     AlbumArtistCard(title = artist, subtitle = "$albumCount Album(s)", song = artistSongs.firstOrNull()) {
-                                        playerViewModel.playQueue(artistSongs, 0)
+                                        libraryViewModel.selectDetail(artist, artistSongs)
+                                        onNavigateToDetail()
                                     }
                                 }
                             }
@@ -279,7 +363,10 @@ fun SharedTransitionScope.HomeScreen(
 
 @Composable
 fun SongItem(song: Song, isCurrent: Boolean, onClick: () -> Unit) {
-    val cardColor = if (isCurrent) MyTubeColors.AccentGlow else getSongColorHash(song.title)
+    val bgColor by animateColorAsState(
+        if (isCurrent) Tokens.bgElevated else Color.Transparent,
+        animationSpec = tween(300)
+    )
     val context = androidx.compose.ui.platform.LocalContext.current
     var artBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
     
@@ -317,54 +404,77 @@ fun SongItem(song: Song, isCurrent: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Brush.horizontalGradient(listOf(cardColor, MyTubeColors.BackgroundSurface.copy(alpha=0.5f))))
-            .clickable { onClick() }
-            .padding(12.dp),
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .background(bgColor, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Left accent bar — only visible when playing
+        AnimatedVisibility(visible = isCurrent) {
+            Box(
+                Modifier
+                    .width(3.dp)
+                    .height(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Tokens.accentPrimary, Tokens.accentSecondary)
+                        )
+                    )
+            )
+            Spacer(Modifier.width(8.dp))
+        }
+
+        // Album art thumbnail
         Box(
             modifier = Modifier
                 .size(48.dp)
-                .clip(CircleShape)
-                .background(if (isCurrent) MyTubeColors.AccentSkyBlue else MyTubeColors.GlassSurface),
+                .clip(RoundedCornerShape(8.dp))
+                .background(Tokens.bgElevated),
             contentAlignment = Alignment.Center
         ) {
             if (artBitmap != null) {
                 androidx.compose.foundation.Image(
                     bitmap = artBitmap!!,
                     contentDescription = null,
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
                 Icon(
                     imageVector = Icons.Default.MusicNote,
                     contentDescription = null,
-                    tint = if (isCurrent) MyTubeColors.TextPrimary else MyTubeColors.TextSecondary
+                    tint = Tokens.textDisabled
                 )
             }
         }
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
+
+        Spacer(Modifier.width(12.dp))
+
+        Column(Modifier.weight(1f)) {
             Text(
-                text = song.title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isCurrent) MyTubeColors.AccentSkyBlue else MyTubeColors.TextPrimary,
+                song.title,
+                style = MyTubeTypography.bodyMedium.copy(
+                    color = if (isCurrent) Tokens.accentPrimary else Tokens.textPrimary,
+                    fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal
+                ),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = song.artist,
-                fontSize = 14.sp,
-                color = MyTubeColors.TextSecondary,
+                song.artist,
+                style = MyTubeTypography.labelSmall.copy(color = Tokens.textSecondary),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
+        
+        fun Long.toFormatTime(): String = String.format("%02d:%02d", this / 1000 / 60, (this / 1000) % 60)
+        Text(
+            song.duration.toFormatTime(),
+            style = MyTubeTypography.labelSmall.copy(color = Tokens.textDisabled, fontSize = 11.sp)
+        )
     }
 }
 
@@ -385,91 +495,97 @@ fun SharedTransitionScope.MiniPlayer(
     
     Box(
         modifier = Modifier
-            .size(150.dp)
-            .shadow(16.dp, RoundedCornerShape(24.dp), ambientColor = MyTubeColors.AccentSkyBlue, spotColor = MyTubeColors.AccentSkyBlue.copy(alpha = 0.5f))
-            .clip(RoundedCornerShape(24.dp))
-            .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(24.dp))
-            .clickable { onClick() }
+            .padding(12.dp)
+            .fillMaxWidth()
+            .height(72.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Tokens.bgElevated.copy(alpha = 0.85f))
+            .border(1.dp, Tokens.strokeSubtle, RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
     ) {
-        // Glass background
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Brush.linearGradient(listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.05f))))
-                .run {
-                    if (android.os.Build.VERSION.SDK_INT >= 31) {
-                        this.graphicsLayer {
-                            renderEffect = androidx.compose.ui.graphics.BlurEffect(24f, 24f)
-                        }
-                    } else this
-                }
-        )
+        // Shared CD Art replacement or simple Box
+        var artBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+        val context = androidx.compose.ui.platform.LocalContext.current
         
-        Column(
-            modifier = Modifier.fillMaxSize().padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Shared CD Art
-            SpinningCDAnimation(
-                animatedVisibilityScope = animatedVisibilityScope,
-                isPlaying = isPlaying,
-                artBitmap = null,
-                modifier = Modifier
-                    .size(56.dp)
-                    .sharedElement(
-                        state = rememberSharedContentState(key = "cd_art"),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        boundsTransform = { _, _ -> tween(400) }
-                    )
-            )
-            
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = song.title,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = song.artist,
-                    fontSize = 11.sp,
-                    color = Color.White.copy(alpha = 0.7f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onPrev, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.SkipPrevious, contentDescription = "Prev", tint = Color.White, modifier = Modifier.size(22.dp))
-                }
-                IconButton(onClick = onPlayPause, modifier = Modifier.size(40.dp)) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = "Play/Pause",
-                        tint = MyTubeColors.AccentSkyBlue,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-                IconButton(onClick = onNext, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = Color.White, modifier = Modifier.size(22.dp))
+        LaunchedEffect(song.uri) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val fileName = "art_${song.title.hashCode()}"
+                val cachedFile = java.io.File(context.cacheDir, "$fileName.jpg")
+                if (cachedFile.exists()) {
+                    artBitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
+                } else {
+                    try {
+                        val retriever = android.media.MediaMetadataRetriever()
+                        context.contentResolver.openFileDescriptor(android.net.Uri.parse(song.uri), "r")?.use { pfd ->
+                            retriever.setDataSource(pfd.fileDescriptor)
+                            val art = retriever.embeddedPicture
+                            if (art != null) {
+                                artBitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
+                            }
+                        }
+                        retriever.release()
+                    } catch (e: Exception) {}
                 }
             }
         }
-        
-        // Progress Bar
-        LinearProgressIndicator(
-            progress = { progressRatio },
-            modifier = Modifier.fillMaxWidth().height(3.dp).align(Alignment.BottomCenter),
-            color = MyTubeColors.AccentSkyBlue,
-            trackColor = Color.Transparent
+
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (artBitmap != null) {
+                androidx.compose.foundation.Image(
+                    bitmap = artBitmap!!,
+                    contentDescription = null,
+                    modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)).sharedElement(
+                        state = rememberSharedContentState(key = "cd_art"),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        boundsTransform = { _, _ -> tween(400) }
+                    ),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)).background(Tokens.bgSurface).sharedElement(
+                        state = rememberSharedContentState(key = "cd_art"),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        boundsTransform = { _, _ -> tween(400) }
+                    ), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.MusicNote, null, tint = Tokens.textDisabled)
+                }
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(song.title, style = MyTubeTypography.bodyMedium.copy(color = Tokens.textPrimary), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(song.artist, style = MyTubeTypography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            // Controls
+            IconButton(onClick = onPrev) {
+                Icon(Icons.Default.SkipPrevious, tint = Tokens.textSecondary, contentDescription = "Previous")
+            }
+            IconButton(onClick = onPlayPause) {
+                Icon(
+                    if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    tint = Tokens.accentPrimary,
+                    modifier = Modifier.size(32.dp),
+                    contentDescription = if (isPlaying) "Pause" else "Play"
+                )
+            }
+            IconButton(onClick = onNext) {
+                Icon(Icons.Default.SkipNext, tint = Tokens.textSecondary, contentDescription = "Next")
+            }
+        }
+
+        // Thin progress bar at the very bottom edge
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth(progressRatio)
+                .height(2.dp)
+                .background(
+                    Brush.horizontalGradient(listOf(Tokens.accentPrimary, Tokens.accentSecondary))
+                )
         )
     }
 }
@@ -510,38 +626,48 @@ fun AlbumArtistCard(title: String, subtitle: String, song: Song?, onClick: () ->
         }
     }
     
-    Column(
+    Box(
         modifier = Modifier
             .padding(8.dp)
-            .fillMaxWidth()
+            .aspectRatio(1f)
             .clip(RoundedCornerShape(16.dp))
-            .background(MyTubeColors.GlassSurface)
-            .clickable { onClick() }
-            .padding(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .clickable(onClick = onClick)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MyTubeColors.GlassBorder),
-            contentAlignment = Alignment.Center
-        ) {
-            if (artBitmap != null) {
-                androidx.compose.foundation.Image(
-                    bitmap = artBitmap!!,
-                    contentDescription = null,
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Icon(Icons.Default.MusicNote, contentDescription = null, tint = MyTubeColors.TextSecondary, modifier = Modifier.size(48.dp))
+        if (artBitmap != null) {
+            androidx.compose.foundation.Image(
+                bitmap = artBitmap!!,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize().background(Tokens.bgElevated),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.MusicNote, contentDescription = null, tint = Tokens.textDisabled, modifier = Modifier.size(48.dp))
             }
         }
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(text = title, fontWeight = FontWeight.Bold, color = MyTubeColors.TextPrimary, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(text = subtitle, color = MyTubeColors.TextSecondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+
+        // Bottom gradient scrim for text legibility
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color(0xDD0D0B0F)),
+                        startY = 150f
+                    )
+                )
+        )
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(10.dp)
+        ) {
+            Text(title, style = MyTubeTypography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, color = Tokens.textPrimary), maxLines = 1)
+            Text(subtitle, style = MyTubeTypography.labelSmall.copy(color = Tokens.textSecondary), maxLines = 1)
+        }
     }
 }
