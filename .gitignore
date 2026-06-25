@@ -3,3 +3,8 @@
 *.jks
 *.keystore
 keystore.properties
+
+# Unnecessary and build files
+app/build/
+legacy_scripts/
+context.md

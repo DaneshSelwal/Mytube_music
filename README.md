@@ -91,8 +91,8 @@
 
 ### Option 1 — Download APK (Recommended for most users)
 
-1. Go to the [Releases](../../releases) page of this repository
-2. Download the latest `MyTubeMusic-vX.X.X.apk` file
+1. [Download MyTube Music APK directly](https://github.com/DaneshSelwal/Mytube_music/raw/main/MyTubeMusic.apk)
+2. Save the `MyTubeMusic.apk` file to your device
 3. On your Android device, go to **Settings → Security → Install unknown apps**
    and allow installation from your browser or file manager
 4. Open the downloaded APK and tap **Install**
