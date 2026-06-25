@@ -256,3 +256,14 @@ implementation("androidx.datastore:datastore-preferences:1.1.1")
 - **Recomposition Scoping**: NowPlayingScreen relies heavily on Canvas drawing and Modifier.graphicsLayer for background offsets and scaling to prevent excessive recomposition of layout nodes during animations.
 - **State Usage**: StateFlow is leveraged across all ViewModels, minimizing unnecessary re-renders. PaletteExtractor is called off the main thread in LaunchedEffect to avoid blocking the UI during image processing.
 - **LazyLists**: QueueBottomSheet and LyricsView use itemsIndexed and rememberLazyListState to optimize scroll performance and distance-aware rendering logic without recalculating positions globally.
+
+## 17. Distribution & CI
+- GitHub Actions workflow: release.yml (triggers on vX.X.X tags → signed APK → GitHub Release)
+- GitHub Actions workflow: build_debug.yml (triggers on push to main → debug APK artifact)
+- ProGuard: enabled for release builds, rules added for Media3 / Room / Jsoup / Coil
+- Keystore: managed via GitHub Secrets (SIGNING_KEY, KEY_ALIAS, KEY_STORE_PASSWORD, KEY_PASSWORD)
+- README: rewritten with hero banner, feature table, install instructions, architecture diagram
+- To publish a release: `git tag v1.0.X && git push origin v1.0.X`
+
+**APK Output Path**:
+`C:\Users\selwa\Desktop\Music App\MyTubeMusic\app\build\outputs\apk\debug\app-debug.apk`
