@@ -1,0 +1,70 @@
+com.mark1.mytubemusic.app-lifecycle-livedata-core-2.8.3-0 C:\Users\selwa\.gradle\caches\transforms-3\0663b23ae7c0a1d77bdc4ed68ecaa58e\transformed\lifecycle-livedata-core-2.8.3\res
+com.mark1.mytubemusic.app-material-icons-extended-release-1 C:\Users\selwa\.gradle\caches\transforms-3\0a7347bf3d5c2899152a85f26e0eafc1\transformed\material-icons-extended-release\res
+com.mark1.mytubemusic.app-ui-geometry-release-2 C:\Users\selwa\.gradle\caches\transforms-3\0d862fa5a79f95afdc9362e4b45770d8\transformed\ui-geometry-release\res
+com.mark1.mytubemusic.app-core-1.13.1-3 C:\Users\selwa\.gradle\caches\transforms-3\106e3293c6356d992e6d16ff87d977f5\transformed\core-1.13.1\res
+com.mark1.mytubemusic.app-navigation-runtime-ktx-2.8.0-4 C:\Users\selwa\.gradle\caches\transforms-3\136c2adc173761451d9e22ecd6af1a54\transformed\navigation-runtime-ktx-2.8.0\res
+com.mark1.mytubemusic.app-lifecycle-viewmodel-release-5 C:\Users\selwa\.gradle\caches\transforms-3\15bdc94c297777a353b5f6693b418f91\transformed\lifecycle-viewmodel-release\res
+com.mark1.mytubemusic.app-core-runtime-2.2.0-6 C:\Users\selwa\.gradle\caches\transforms-3\16362f854057f8429bef3ebd3580e8bc\transformed\core-runtime-2.2.0\res
+com.mark1.mytubemusic.app-navigation-common-2.8.0-7 C:\Users\selwa\.gradle\caches\transforms-3\1c28cd1ce26a55b76537cb7f4ead65c7\transformed\navigation-common-2.8.0\res
+com.mark1.mytubemusic.app-ui-release-8 C:\Users\selwa\.gradle\caches\transforms-3\1e5bd8e35119a29dfd83834679a82a18\transformed\ui-release\res
+com.mark1.mytubemusic.app-core-ktx-1.13.1-9 C:\Users\selwa\.gradle\caches\transforms-3\21f01bae0944389b19c6367363fdb2bd\transformed\core-ktx-1.13.1\res
+com.mark1.mytubemusic.app-ui-tooling-preview-release-10 C:\Users\selwa\.gradle\caches\transforms-3\2453ae99046bae7deff7b77e0333816c\transformed\ui-tooling-preview-release\res
+com.mark1.mytubemusic.app-lifecycle-viewmodel-compose-release-11 C:\Users\selwa\.gradle\caches\transforms-3\2488f43161ec9c5e5f00d7e739e12511\transformed\lifecycle-viewmodel-compose-release\res
+com.mark1.mytubemusic.app-animation-release-12 C:\Users\selwa\.gradle\caches\transforms-3\2bd4d041d584ad106b4603030b4b258a\transformed\animation-release\res
+com.mark1.mytubemusic.app-savedstate-ktx-1.2.1-13 C:\Users\selwa\.gradle\caches\transforms-3\2ebe567394eacd0ff857db2e8fea40e7\transformed\savedstate-ktx-1.2.1\res
+com.mark1.mytubemusic.app-foundation-layout-release-14 C:\Users\selwa\.gradle\caches\transforms-3\34cc4abc015a1051a70c362cd1ed970f\transformed\foundation-layout-release\res
+com.mark1.mytubemusic.app-lifecycle-service-2.8.3-15 C:\Users\selwa\.gradle\caches\transforms-3\448d8cf4a937efcbbaa3412479662ab9\transformed\lifecycle-service-2.8.3\res
+com.mark1.mytubemusic.app-animation-core-release-16 C:\Users\selwa\.gradle\caches\transforms-3\4684e3fd2a06a63e3b05abda10ba2831\transformed\animation-core-release\res
+com.mark1.mytubemusic.app-ui-graphics-release-17 C:\Users\selwa\.gradle\caches\transforms-3\4981e9781c9c31873ebafdb821f2f17c\transformed\ui-graphics-release\res
+com.mark1.mytubemusic.app-media-1.7.0-18 C:\Users\selwa\.gradle\caches\transforms-3\4b552f6907c12a6a5bd32a12082d4fd1\transformed\media-1.7.0\res
+com.mark1.mytubemusic.app-appcompat-resources-1.6.1-19 C:\Users\selwa\.gradle\caches\transforms-3\571edce835dd2d9162e54bfe73933b0e\transformed\appcompat-resources-1.6.1\res
+com.mark1.mytubemusic.app-room-runtime-2.6.1-20 C:\Users\selwa\.gradle\caches\transforms-3\575da2be31a9c95db3abb3a8104f99d6\transformed\room-runtime-2.6.1\res
+com.mark1.mytubemusic.app-emoji2-1.3.0-21 C:\Users\selwa\.gradle\caches\transforms-3\5a3a29a258a0e5ccc3cad46a79529b05\transformed\emoji2-1.3.0\res
+com.mark1.mytubemusic.app-navigation-common-ktx-2.8.0-22 C:\Users\selwa\.gradle\caches\transforms-3\5e8a082047aca364ac4d70c2842463d0\transformed\navigation-common-ktx-2.8.0\res
+com.mark1.mytubemusic.app-lifecycle-viewmodel-savedstate-2.8.3-23 C:\Users\selwa\.gradle\caches\transforms-3\6290cb748a21b577090b7b9bc531c00e\transformed\lifecycle-viewmodel-savedstate-2.8.3\res
+com.mark1.mytubemusic.app-sqlite-2.4.0-24 C:\Users\selwa\.gradle\caches\transforms-3\6e0cb63496f22a908bab32f40ce588c2\transformed\sqlite-2.4.0\res
+com.mark1.mytubemusic.app-runtime-release-25 C:\Users\selwa\.gradle\caches\transforms-3\758203093c5bec35a06e74978a031682\transformed\runtime-release\res
+com.mark1.mytubemusic.app-activity-compose-1.9.0-26 C:\Users\selwa\.gradle\caches\transforms-3\76344ab01bccb7177c2e568366b8ea0d\transformed\activity-compose-1.9.0\res
+com.mark1.mytubemusic.app-lifecycle-runtime-release-27 C:\Users\selwa\.gradle\caches\transforms-3\78a9627191422bee440611e3edd8f91a\transformed\lifecycle-runtime-release\res
+com.mark1.mytubemusic.app-coil-base-2.6.0-28 C:\Users\selwa\.gradle\caches\transforms-3\794eca22919ddb54abd97ceb0b36085c\transformed\coil-base-2.6.0\res
+com.mark1.mytubemusic.app-lifecycle-runtime-compose-release-29 C:\Users\selwa\.gradle\caches\transforms-3\7d42e3aac31462c802cd52fd12335a38\transformed\lifecycle-runtime-compose-release\res
+com.mark1.mytubemusic.app-lifecycle-livedata-core-ktx-2.8.3-30 C:\Users\selwa\.gradle\caches\transforms-3\8bf9bcd1cf0c8aea95f32c0722cdd7c0\transformed\lifecycle-livedata-core-ktx-2.8.3\res
+com.mark1.mytubemusic.app-recyclerview-1.3.0-31 C:\Users\selwa\.gradle\caches\transforms-3\95b4cca5e0e9a2074cfaffd4c66e7dfe\transformed\recyclerview-1.3.0\res
+com.mark1.mytubemusic.app-material3-release-32 C:\Users\selwa\.gradle\caches\transforms-3\981b3299d59820b5a53d81f3381db42a\transformed\material3-release\res
+com.mark1.mytubemusic.app-savedstate-1.2.1-33 C:\Users\selwa\.gradle\caches\transforms-3\99b1577fc4b7aaf5a5260150868359cd\transformed\savedstate-1.2.1\res
+com.mark1.mytubemusic.app-lifecycle-runtime-ktx-release-34 C:\Users\selwa\.gradle\caches\transforms-3\9bff6505c2efde76bd32a18fd76fffb4\transformed\lifecycle-runtime-ktx-release\res
+com.mark1.mytubemusic.app-ui-text-release-35 C:\Users\selwa\.gradle\caches\transforms-3\a19a801cd08b68cd1bf87846f9565acb\transformed\ui-text-release\res
+com.mark1.mytubemusic.app-lifecycle-livedata-2.8.3-36 C:\Users\selwa\.gradle\caches\transforms-3\a5226cc88ae989c2c2bbe5c9b0f1d521\transformed\lifecycle-livedata-2.8.3\res
+com.mark1.mytubemusic.app-activity-1.9.0-37 C:\Users\selwa\.gradle\caches\transforms-3\a56d36ae37c4451474765ce04cdc8b6c\transformed\activity-1.9.0\res
+com.mark1.mytubemusic.app-material-icons-core-release-38 C:\Users\selwa\.gradle\caches\transforms-3\a652a97a279d36826b58541e8a59f365\transformed\material-icons-core-release\res
+com.mark1.mytubemusic.app-ui-unit-release-39 C:\Users\selwa\.gradle\caches\transforms-3\a8f90c4702182faab6837b0a532c6247\transformed\ui-unit-release\res
+com.mark1.mytubemusic.app-media3-ui-1.3.1-40 C:\Users\selwa\.gradle\caches\transforms-3\ab3c87f152faf54e6a48beb44631b70f\transformed\media3-ui-1.3.1\res
+com.mark1.mytubemusic.app-lifecycle-viewmodel-ktx-2.8.3-41 C:\Users\selwa\.gradle\caches\transforms-3\add9d4e242cc4aff26c5f1e45b9f4176\transformed\lifecycle-viewmodel-ktx-2.8.3\res
+com.mark1.mytubemusic.app-lifecycle-process-2.8.3-42 C:\Users\selwa\.gradle\caches\transforms-3\af9c857d0f1b7948c9392fb68e8adc68\transformed\lifecycle-process-2.8.3\res
+com.mark1.mytubemusic.app-navigation-runtime-2.8.0-43 C:\Users\selwa\.gradle\caches\transforms-3\b80ffbf45171110b5df1b6cba0aa434b\transformed\navigation-runtime-2.8.0\res
+com.mark1.mytubemusic.app-ui-util-release-44 C:\Users\selwa\.gradle\caches\transforms-3\b83b24216ac5e1a475c4519337a42878\transformed\ui-util-release\res
+com.mark1.mytubemusic.app-annotation-experimental-1.4.1-45 C:\Users\selwa\.gradle\caches\transforms-3\b88bfb6fadfb0c91dcc21d290f04ab81\transformed\annotation-experimental-1.4.1\res
+com.mark1.mytubemusic.app-room-ktx-2.6.1-46 C:\Users\selwa\.gradle\caches\transforms-3\b9115da82a0391fc8ac1a2465b3ed523\transformed\room-ktx-2.6.1\res
+com.mark1.mytubemusic.app-graphics-path-1.0.1-47 C:\Users\selwa\.gradle\caches\transforms-3\bd6777166f7c57d0f25a6ea6a49508c7\transformed\graphics-path-1.0.1\res
+com.mark1.mytubemusic.app-material-ripple-release-48 C:\Users\selwa\.gradle\caches\transforms-3\bf8bc66ddb4e48cb2deead2bb10f7e19\transformed\material-ripple-release\res
+com.mark1.mytubemusic.app-datastore-core-release-49 C:\Users\selwa\.gradle\caches\transforms-3\c1f778d05a2954f9996babd6d26c89c9\transformed\datastore-core-release\res
+com.mark1.mytubemusic.app-work-runtime-ktx-2.9.0-50 C:\Users\selwa\.gradle\caches\transforms-3\c2339ac8f3613ee0212b001243201517\transformed\work-runtime-ktx-2.9.0\res
+com.mark1.mytubemusic.app-media3-exoplayer-1.3.1-51 C:\Users\selwa\.gradle\caches\transforms-3\c4071ba3fdae313879b5a83ca0b70b2c\transformed\media3-exoplayer-1.3.1\res
+com.mark1.mytubemusic.app-profileinstaller-1.3.1-52 C:\Users\selwa\.gradle\caches\transforms-3\c547e9760998a6d3c7bb7bc51c727bce\transformed\profileinstaller-1.3.1\res
+com.mark1.mytubemusic.app-startup-runtime-1.1.1-53 C:\Users\selwa\.gradle\caches\transforms-3\c5a9d5bcfea0ca3232e6fb82eed042c3\transformed\startup-runtime-1.1.1\res
+com.mark1.mytubemusic.app-navigation-compose-2.8.0-54 C:\Users\selwa\.gradle\caches\transforms-3\d262e03f3c7400fc56a1081d1f10fe84\transformed\navigation-compose-2.8.0\res
+com.mark1.mytubemusic.app-activity-ktx-1.9.0-55 C:\Users\selwa\.gradle\caches\transforms-3\d296d2894d6b1b7d7829f82377cc6fd6\transformed\activity-ktx-1.9.0\res
+com.mark1.mytubemusic.app-customview-poolingcontainer-1.0.0-56 C:\Users\selwa\.gradle\caches\transforms-3\d5f3965b8b054bf11392f8cbe2cb6907\transformed\customview-poolingcontainer-1.0.0\res
+com.mark1.mytubemusic.app-datastore-preferences-release-57 C:\Users\selwa\.gradle\caches\transforms-3\d6497d758a4176e54842c9f73b4f4899\transformed\datastore-preferences-release\res
+com.mark1.mytubemusic.app-media3-session-1.3.1-58 C:\Users\selwa\.gradle\caches\transforms-3\e39b6b6c82702c39843194293e975c32\transformed\media3-session-1.3.1\res
+com.mark1.mytubemusic.app-runtime-saveable-release-59 C:\Users\selwa\.gradle\caches\transforms-3\eb905200893a2e842a978d4e765403e3\transformed\runtime-saveable-release\res
+com.mark1.mytubemusic.app-foundation-release-60 C:\Users\selwa\.gradle\caches\transforms-3\f09f9ee3f0b4302744ca1c43200707f1\transformed\foundation-release\res
+com.mark1.mytubemusic.app-datastore-release-61 C:\Users\selwa\.gradle\caches\transforms-3\f297ffde4f49b4f26682d39e616c2cc6\transformed\datastore-release\res
+com.mark1.mytubemusic.app-work-runtime-2.9.0-62 C:\Users\selwa\.gradle\caches\transforms-3\f85fa516191b3b852285516e374bd53e\transformed\work-runtime-2.9.0\res
+com.mark1.mytubemusic.app-sqlite-framework-2.4.0-63 C:\Users\selwa\.gradle\caches\transforms-3\f94f399e7eeaae1c79d7e0b9d74cf702\transformed\sqlite-framework-2.4.0\res
+com.mark1.mytubemusic.app-resValues-64 C:\Users\selwa\Desktop\Music App\MyTubeMusic\app\build\generated\res\resValues\debug
+com.mark1.mytubemusic.app-packageDebugResources-65 C:\Users\selwa\Desktop\Music App\MyTubeMusic\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
+com.mark1.mytubemusic.app-packageDebugResources-66 C:\Users\selwa\Desktop\Music App\MyTubeMusic\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
+com.mark1.mytubemusic.app-merged_res-67 C:\Users\selwa\Desktop\Music App\MyTubeMusic\app\build\intermediates\merged_res\debug
+com.mark1.mytubemusic.app-debug-68 C:\Users\selwa\Desktop\Music App\MyTubeMusic\app\src\debug\res
+com.mark1.mytubemusic.app-main-69 C:\Users\selwa\Desktop\Music App\MyTubeMusic\app\src\main\res
