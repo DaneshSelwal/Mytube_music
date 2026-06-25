@@ -55,7 +55,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mark1.mytubemusic.utils.PaletteExtractor
+import com.mark1.mytubemusic.util.PaletteExtractor
 import com.mark1.mytubemusic.viewmodel.PlayerViewModel
 import com.mark1.mytubemusic.ui.theme.MyTubeColors
 import com.mark1.mytubemusic.ui.theme.Tokens
@@ -640,7 +640,7 @@ fun SharedTransitionScope.SpinningCDAnimation(
 }
 
 @Composable
-fun LyricsView(lyrics: List<com.mark1.mytubemusic.utils.LyricLine>, currentProgress: Long, modifier: Modifier = Modifier) {
+fun LyricsView(lyrics: List<com.mark1.mytubemusic.util.LyricLine>, currentProgress: Long, modifier: Modifier = Modifier) {
     val listState = rememberLazyListState()
     var activeIndex by remember { mutableIntStateOf(-1) }
     
@@ -666,6 +666,77 @@ fun LyricsView(lyrics: List<com.mark1.mytubemusic.utils.LyricLine>, currentProgr
                 color = if (isActive) Tokens.accentPrimary else Tokens.textSecondary,
                 modifier = Modifier.padding(vertical = 12.dp),
                 textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun QueueBottomSheet(playerViewModel: PlayerViewModel, onDismissRequest: () -> Unit) {
+    val queue by playerViewModel.queue.collectAsState()
+    val currentSong by playerViewModel.currentSong.collectAsState()
+
+    ModalBottomSheet(
+        onDismissRequest = onDismissRequest,
+        containerColor = com.mark1.mytubemusic.ui.theme.Tokens.bgElevated,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp)
+        ) {
+            Text(
+                text = "Playing Queue",
+                style = com.mark1.mytubemusic.ui.theme.MyTubeTypography.titleLarge.copy(color = com.mark1.mytubemusic.ui.theme.Tokens.textPrimary),
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+            )
+
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                itemsIndexed(queue) { index, song ->
+                    val isPlaying = currentSong?.uri == song.uri
+                    QueueItem(
+                        song = song,
+                        isPlaying = isPlaying,
+                        onClick = { playerViewModel.skipToIndex(index) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun QueueItem(song: Song, isPlaying: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .background(if (isPlaying) com.mark1.mytubemusic.ui.theme.Tokens.glassTint else Color.Transparent, RoundedCornerShape(12.dp))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = song.title,
+                style = com.mark1.mytubemusic.ui.theme.MyTubeTypography.bodyMedium.copy(
+                    fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isPlaying) com.mark1.mytubemusic.ui.theme.Tokens.accentPrimary else com.mark1.mytubemusic.ui.theme.Tokens.textPrimary
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = song.artist,
+                style = com.mark1.mytubemusic.ui.theme.MyTubeTypography.labelSmall.copy(color = com.mark1.mytubemusic.ui.theme.Tokens.textSecondary),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

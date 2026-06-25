@@ -21,8 +21,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import androidx.lifecycle.viewModelScope
-import com.mark1.mytubemusic.utils.LyricLine
-import com.mark1.mytubemusic.utils.LrcParser
+import com.mark1.mytubemusic.util.LyricLine
+import com.mark1.mytubemusic.util.LrcParser
 
 class PlayerViewModel : ViewModel() {
 

@@ -284,7 +284,11 @@ int drawable notification_template_icon_bg 0x7f06006a
 int drawable notification_template_icon_low_bg 0x7f06006b
 int drawable notification_tile_bg 0x7f06006c
 int drawable notify_panel_notification_icon_bg 0x7f06006d
-int font roboto_medium_numbers 0x7f070000
+int font dm_serif_display_italic 0x7f070000
+int font inter_regular 0x7f070001
+int font inter_semibold 0x7f070002
+int font jetbrains_mono_regular 0x7f070003
+int font roboto_medium_numbers 0x7f070004
 int id accessibility_action_clickable_span 0x7f080000
 int id accessibility_custom_action_0 0x7f080001
 int id accessibility_custom_action_1 0x7f080002

@@ -29,7 +29,7 @@ import com.mark1.mytubemusic.ui.screens.DetailScreen
 import com.mark1.mytubemusic.ui.theme.MyTubeMusicTheme
 import com.mark1.mytubemusic.viewmodel.LibraryViewModel
 import com.mark1.mytubemusic.viewmodel.PlayerViewModel
-import com.mark1.mytubemusic.utils.ShakeDetector
+import com.mark1.mytubemusic.util.ShakeDetector
 
 class MainActivity : ComponentActivity() {
     private var shakeDetector: ShakeDetector? = null

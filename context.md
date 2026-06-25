@@ -1,62 +1,164 @@
-# MyTube Music - Project Context & Architecture
-
-This document outlines the current state, architecture, and features of the **MyTube Music** Android application. It serves as a comprehensive context for any AI or developer looking to understand the project structure and provide further architectural or UI/UX enhancements.
+# MyTube Music - Project Context
 
 ## 1. Project Overview
-- **Name**: MyTube Music
+- **App Name**: MyTube Music
 - **Platform**: Android
-- **Core Stack**: Kotlin, Jetpack Compose (Material 3), AndroidX Media3 (MediaSession, MediaController, ExoPlayer), Room Database.
-- **Goal**: A modern, premium local music player that behaves similarly to YouTube Music but strictly plays local files from the device.
+- **Core Stack**: 
+  - Android Application (`com.android.application` v8.2.0)
+  - Kotlin (`org.jetbrains.kotlin.android` v1.9.24)
+  - Jetpack Compose (BOM: `2024.10.00`)
+  - KSP (`1.9.24-1.0.20`)
+  - Target/Compile SDK: `34`
+  - Min SDK: `26`
 
-## 2. High-Level Architecture
+## 2. Architecture Summary
+The app follows an MVVM (Model-View-ViewModel) architecture paired with an asynchronous Media3 background service.
 
-The app follows an MVVM (Model-View-ViewModel) architecture paired with a background MediaService for continuous playback.
+### ViewModels
+- **`LibraryViewModel.kt`**: Scans the local device (`MediaStore`) for `.mp3` files, groups them into albums/artists, stores them in Room DB, and manages search queries.
+- **`PlayerViewModel.kt`**: Bridges the UI to the underlying `Media3` engine via `MediaController`. Manages playback state, queue, timeline progress, shuffle/repeat modes, sleep timers, and `.lrc` lyric parsing.
 
-### A. UI Layer (Jetpack Compose)
-All screens are built using Jetpack Compose and Material 3, heavily utilizing `StateFlow` observation for reactive UI updates and `SharedTransitionScope` for seamless navigation animations between screens.
-- **`MainActivity.kt`**: The entry point. Dynamically checks for `READ_MEDIA_AUDIO` (Android 13+) or `READ_EXTERNAL_STORAGE` permissions upon launch.
-- **`OnboardingScreen.kt`**: A premium, "Midnight Vinyl" styled screen designed to request file access permissions from the user with deep gradients and modern typography.
-- **`HomeScreen.kt`**: 
-  - Features the "Midnight Vinyl" design system (`Tokens` and `MyTubeTypography`) with deep backgrounds, glassmorphism (`Tokens.glassTint`), and vibrant accents.
-  - Fully responsive to Landscape and Portrait modes.
-  - Displays the entire scanned local music library with an animated pill-shaped TabRow for Songs, Albums, and Artists.
-  - Albums and Artists are displayed in a sleek `LazyVerticalGrid` of `AlbumArtistCard`s with gradient scrims.
-  - `SongItem`s feature active playing indicators (gradient bars) and elegant typography.
-  - Includes a sleek, rounded `MiniPlayer` docked at the bottom with embedded `SharedTransition` elements for album art, play controls, and a bottom progress bar.
-- **`NowPlayingScreen.kt`**: 
-  - The main playback UI. Adaptable to both Landscape and Portrait orientations using fluid layouts.
-  - Features a rotating vinyl record animation for the album art (`SpinningCDAnimation` customized as a vinyl record).
-  - Immersive, pulsating mesh gradient background synced to the beat/progress of the playing song.
-  - Typography is styled in aesthetic, magazine-like `DM Serif Display` and `Inter` via `Tokens`.
-  - Incorporates `LyricsView` parser that reads local `.lrc` files to display synced karaoke-style lyrics with smooth animations.
-  - Integrated with `LocalHapticFeedback` to provide tactile responses (long press / subtle ticks) on play controls and UI interactions.
-  - Features quick-action chips/buttons for Toggling Lyrics and Sleep Timer settings.
-- **`QueueBottomSheet`**: Replaced the standalone `QueueScreen` with an elegant `ModalBottomSheet` directly accessible from `NowPlayingScreen` for better context preservation and UX. Displays the active playlist queue.
+### Screen Composables
+- **`MainActivity.kt`**: Entry point that dynamically handles permission requests and initializes the navigation graph (`AppNavHost`).
+- **`OnboardingScreen.kt`**: Premium "Midnight Vinyl" themed screen to request storage/audio permissions.
+- **`HomeScreen.kt`**: Displays the local library with tabs for Songs, Albums, and Artists. Features `ShimmerSongItem` loading states, grid layouts (`LazyVerticalGrid`), and a floating `MiniPlayer`.
+- **`NowPlayingScreen.kt`**: Main playback UI featuring a spinning vinyl animation (`SpinningCDAnimation`), a glowing SeekBar, and synchronized lyrics overlay.
+- **`DetailScreen.kt`**: Displays the tracklist for a selected Album or Artist clicked from the HomeScreen.
+- **`QueueScreen.kt`** (Replaced): The queue has been refactored into a `QueueBottomSheet` directly accessible within `NowPlayingScreen`.
 
-### B. Presentation Layer (ViewModels)
-- **`LibraryViewModel.kt`**: Handles file discovery. It queries the Android `MediaStore` specifically for audio files located in `/sdcard/Music/`. It extracts custom artist info from file names if standard metadata is missing.
-- **`PlayerViewModel.kt`**: The bridge between the UI and the underlying `Media3` playback engine. It initializes a `MediaController` to communicate with the `MusicService`. It manages current progress, shuffling, repeating, playback speed, and sleep timers.
+### Services
+- **`MusicService.kt`**: Extends `MediaSessionService`. Runs ExoPlayer in the background, ensuring music plays when the app is minimized and handles media notifications.
 
-### C. Service & Playback Layer
-- **`MusicService.kt`**: Extends `MediaSessionService`. This background service holds the `ExoPlayer` instance and the `MediaSession`. It ensures music continues playing even if the UI is closed. 
-  - *Note*: It explicitly overrides `onTaskRemoved()` so that if the user swipes the app away from their Recents screen, the service immediately calls `player.pause()` and `stopSelf()`, killing the playback as expected by the user.
+### Utility Classes
+- **`ShakeDetector.kt`**: Uses device accelerometer to skip tracks when the device is shaken.
+- **`ArtworkScraper.kt`**: Scrapes Google Images via Jsoup for missing album art.
+- **`PaletteExtractor.kt`**: Uses AndroidX Palette to extract vibrant dominant colors from bitmaps.
+- **`LrcParser.kt`**: Parses standard `.lrc` text files into typed `LyricLine` objects with timestamps.
 
-### D. Utilities & Features
-- **`ShakeDetector.kt`**: Hooks into the Android `SensorManager` (accelerometer). When the user physically shakes the device, it triggers a callback to skip to the next track.
-- **`PaletteExtractor.kt`**: Extracts the most vibrant and aesthetic dynamic colors from album art to theme the background gradients.
-- **`ArtworkScraper.kt`**: An intelligent web scraper using `Jsoup` that queries Google Images for missing album art (e.g. "Song Title Artist Name album art"), caching the results locally.
-- **`LrcParser.kt`**: Reads and parses `.lrc` lyric files to power the synced lyrics screen.
-- **Custom Adaptive Icon**: Located in `res/mipmap-anydpi-v26/`, featuring a sky-blue YouTube-style background with a white play button foreground.
+## 3. Current File Tree
+```
+MyTubeMusic/
+├── app/
+│   ├── build.gradle.kts
+│   └── src/
+│       ├── main/
+│       │   ├── AndroidManifest.xml
+│       │   ├── java/com/mark1/mytubemusic/
+│       │   │   ├── MainActivity.kt
+│       │   │   ├── data/
+│       │   │   │   ├── db/ (AppDatabase.kt, SongDao.kt)
+│       │   │   │   └── model/ (Entities.kt)
+│       │   │   ├── repository/ (SongRepository.kt)
+│       │   │   ├── service/ (MusicService.kt)
+│       │   │   ├── ui/
+│       │   │   │   ├── components/ (GlassCard.kt, MiniPlayer.kt, VinylDisc.kt)
+│       │   │   │   ├── screens/ (DetailScreen.kt, HomeScreen.kt, NowPlayingScreen.kt, OnboardingScreen.kt, QueueScreen.kt)
+│       │   │   │   └── theme/ (Color.kt, Theme.kt, Type.kt)
+│       │   │   ├── util/ (ArtworkScraper.kt, Extensions.kt, PaletteExtractor.kt, ShakeDetector.kt)
+│       │   │   ├── utils/ (LrcParser.kt)
+│       │   │   └── viewmodel/ (LibraryViewModel.kt, PlayerViewModel.kt)
+│       │   └── res/
+│       │       ├── drawable/ (ic_launcher_background.xml, ic_launcher_foreground.xml)
+│       │       ├── font/ (dm_serif_display_italic.ttf)
+│       │       ├── mipmap-anydpi-v26/ (ic_launcher.xml, ic_launcher_round.xml)
+│       │       └── values/ (strings.xml, themes.xml)
+├── build.gradle.kts
+├── settings.gradle.kts
+├── gradle.properties
+└── context.md
+```
 
-## 3. Data Flow
-1. The app launches and checks permissions.
-2. `LibraryViewModel` queries `MediaStore` and populates the `songs`, `albums`, and `artists` states.
-3. The user taps a song or album card on `HomeScreen`, calling `playerViewModel.playQueue(list, index)`.
-4. `PlayerViewModel` converts the `Song` list into `MediaItem`s and sends them to the `MediaController`.
-5. The `MediaController` commands the `ExoPlayer` inside `MusicService` to start playback.
-6. The `PlayerViewModel` polls progress and state, updating the Compose UI reactively.
+## 4. Design Tokens & Theme
+The design targets a **"Midnight Vinyl"** aesthetic defined in `Tokens` (`Color.kt`):
 
-## 4. Current State & Known Details
-- **Media Location**: Songs are specifically loaded from the local `/Music/` directory. Duplicate files previously pushed via ADB have been cleaned up via a custom PowerShell script.
-- **Installation Pipeline**: Built via local Gradle scripts (`run_build.bat`) and pushed to the Realme Pad 2 via ADB (`install_and_run.bat`).
-- **Database**: `AppDatabase` (Room) is configured but currently secondary to `MediaStore` for immediate file discovery.
+- **Backgrounds**: `bgDeep` (0xFF0D0B0F), `bgSurface` (0xFF161218), `bgElevated` (0xFF1E1A22)
+- **Accents**: `accentPrimary` (0xFFB08DFF), `accentSecondary` (0xFFFFD98E)
+- **Text**: `textPrimary` (0xFFF2EEF8), `textSecondary` (0xFF9A8FAA), `textDisabled` (0xFF4A3F55)
+- **Effects**: `strokeSubtle` (0xFF2A2432), `glassTint` (0x22B08DFF)
+
+**Typography** (`Type.kt`):
+- `DmSerifDisplay` (Serif fallback used for `TitleLarge` 28sp / `TitleMedium` 20sp)
+- `Inter` (SansSerif fallback used for `BodyMedium` 14sp / `BodySmall` 12sp)
+- `JetBrainsMono` (Monospace fallback)
+
+## 5. Navigation Graph
+Housed in `MainActivity.kt` using `AppNavHost` with an overarching `SharedTransitionLayout`:
+1. `onboarding` -> `OnboardingScreen` (transitions to `home` on permission grant)
+2. `home` -> `HomeScreen` (transitions to `now_playing` via MiniPlayer, or `detail` via Album/Artist cards)
+3. `now_playing` -> `NowPlayingScreen` (can pop back to `home` or `detail`)
+4. `detail` -> `DetailScreen` (can pop back to `home`, transitions to `now_playing` via MiniPlayer)
+
+## 6. State Management
+
+### `LibraryViewModel.kt`
+- `allSongs` (StateFlow<List<Song>>): Backs the full music library.
+- `albums` (StateFlow<Map<String, List<Song>>>): Groups songs by album for the Albums tab grid.
+- `artists` (StateFlow<Map<String, List<Song>>>): Groups songs by artist for the Artists tab grid.
+- `searchQuery` (StateFlow<String>): Search bar input in `HomeScreen`.
+- `filteredSongs` (StateFlow<List<Song>>): Drives the dynamically filtered Songs tab.
+- `isScanning` (StateFlow<Boolean>): Drives the loading skeleton (`ShimmerSongItem`).
+- `scanProgress` (StateFlow<String>): Text display during MediaStore scanning.
+- `selectedDetailTitle` / `selectedDetailSongs` (StateFlow): Passes data directly to `DetailScreen`.
+
+### `PlayerViewModel.kt`
+- `currentSong` (StateFlow<Song?>): Global playing track metadata.
+- `isPlaying` (StateFlow<Boolean>): Drives Play/Pause button icons across the app.
+- `queue` (StateFlow<List<Song>>): Backs the `QueueBottomSheet`.
+- `progress` / `duration` (StateFlow<Long>): Drives SeekBars and timers.
+- `shuffleModeEnabled` (StateFlow<Boolean>): Drives shuffle toggle icon color.
+- `repeatMode` (StateFlow<Int>): Cycles between OFF/ALL/ONE.
+- `sleepTimerText` (StateFlow<String?>): Drives sleep timer countdown UI.
+- `playbackSpeed` (StateFlow<Float>): Playback multiplier state.
+- `currentLyrics` (StateFlow<List<LyricLine>>): Syncs karaoke lyrics in `NowPlayingScreen`.
+
+## 7. Dependencies
+From `build.gradle.kts`:
+```kotlin
+implementation("androidx.core:core-ktx:1.13.1")
+implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.2")
+implementation("androidx.activity:activity-compose:1.9.0")
+val composeBom = platform("androidx.compose:compose-bom:2024.10.00")
+implementation(composeBom)
+implementation("androidx.compose.ui:ui")
+implementation("androidx.compose.material3:material3")
+implementation("androidx.compose.animation:animation")
+implementation("androidx.compose.ui:ui-tooling-preview")
+implementation("androidx.compose.material:material-icons-extended")
+implementation("androidx.navigation:navigation-compose:2.8.0")
+implementation("androidx.media3:media3-exoplayer:1.3.1")
+implementation("androidx.media3:media3-session:1.3.1")
+implementation("androidx.media3:media3-ui:1.3.1")
+implementation("androidx.room:room-runtime:2.6.1")
+implementation("androidx.room:room-ktx:2.6.1")
+ksp("androidx.room:room-compiler:2.6.1")
+implementation("io.coil-kt:coil-compose:2.6.0")
+implementation("androidx.palette:palette-ktx:1.0.0")
+implementation("com.squareup.okhttp3:okhttp:4.12.0")
+implementation("org.jsoup:jsoup:1.17.2")
+implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+implementation("androidx.work:work-runtime-ktx:2.9.0")
+implementation("androidx.datastore:datastore-preferences:1.1.1")
+```
+
+## 8. Known Issues / TODOs
+- **Fonts Placeholder**: `Type.kt` relies on default system fallbacks (`FontFamily.Serif`, `FontFamily.SansSerif`) even though `dm_serif_display_italic.ttf` is present in `res/font/`. The font family bindings need to be updated to use the actual `.ttf` resource.
+- **Scraper Reliability**: `ArtworkScraper` parses Google Images via raw regex which is brittle and likely to fail if DOM structures change.
+- **Legacy Files**: `QueueScreen.kt` still exists in the filesystem but has been bypassed by `QueueBottomSheet`. It should be deleted to prevent confusion.
+
+## 9. Implementation Status from Instruction Checklist
+*(Note: `instruction.md` does not exist natively in the file tree, but referring to the "MyTube Music — UI & UX Enhancement Instructions" from previous context)*:
+- **DONE**: Upgrade NowPlayingScreen (Vinyl CD, glowing slider, haptic feedback).
+- **DONE**: Migrate Queue to `ModalBottomSheet`.
+- **DONE**: Add `ShimmerSongItem` and `EmptyLibrary` to `HomeScreen`.
+- **DONE**: Upgrade `OnboardingScreen` to match Midnight Vinyl tokens.
+- **DONE**: Add `DetailScreen` routing for Artists and Albums.
+- **DONE**: Define exact global color Tokens and typography settings.
+- **DONE**: Font Integration (Task 1)
+- **DONE**: Project structure cleanup (Task 2)
+- **DONE**: PillTabRow (Task 3a)
+- **DONE**: SongListItem active highlight (Task 3b)
+- **DONE**: MiniPlayer progress line + swipe-up (Task 4)
+- **DONE**: AlbumArtistCard gradient scrim (Task 5)
+
+## 10. Blockers / Questions
+- **None**: All previous blockers (font placeholders and duplicate utility packages) have been fully resolved.

@@ -14,6 +14,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
@@ -244,48 +247,11 @@ fun SharedTransitionScope.HomeScreen(
                         shape = RoundedCornerShape(24.dp)
                     )
 
-                    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-                    val screenWidth = configuration.screenWidthDp.dp
-                    
-                    val indicatorOffset by animateDpAsState(
-                        targetValue = (screenWidth / tabs.size) * selectedTabIndex,
-                        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f)
+                    PillTabRow(
+                        selectedIndex = selectedTabIndex,
+                        tabs = tabs,
+                        onTabSelect = { selectedTabIndex = it }
                     )
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(40.dp)
-                            .padding(horizontal = 16.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Tokens.bgSurface)
-                    ) {
-                        // Sliding pill
-                        Box(
-                            modifier = Modifier
-                                .width((screenWidth - 32.dp) / tabs.size)
-                                .fillMaxHeight()
-                                .offset(x = indicatorOffset)
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(Tokens.glassTint)
-                                .border(1.dp, Tokens.accentPrimary.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
-                        )
-                        Row(Modifier.fillMaxSize()) {
-                            tabs.forEachIndexed { index, title ->
-                                Box(
-                                    modifier = Modifier.weight(1f).fillMaxHeight().clickable { selectedTabIndex = index },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = title,
-                                        style = MyTubeTypography.bodyMedium,
-                                        color = if (selectedTabIndex == index) Tokens.accentPrimary else Tokens.textSecondary,
-                                        fontWeight = if (selectedTabIndex == index) FontWeight.SemiBold else FontWeight.Normal
-                                    )
-                                }
-                            }
-                        }
-                    }
                     Spacer(modifier = Modifier.height(16.dp))
 
                     when (selectedTabIndex) {
@@ -502,6 +468,11 @@ fun SharedTransitionScope.MiniPlayer(
             .background(Tokens.bgElevated.copy(alpha = 0.85f))
             .border(1.dp, Tokens.strokeSubtle, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
+            .pointerInput(Unit) {
+                detectVerticalDragGestures { _, dragAmount ->
+                    if (dragAmount < -40f) onClick()
+                }
+            }
     ) {
         // Shared CD Art replacement or simple Box
         var artBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
@@ -650,16 +621,22 @@ fun AlbumArtistCard(title: String, subtitle: String, song: Song?, onClick: () ->
         }
 
         // Bottom gradient scrim for text legibility
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color(0xDD0D0B0F)),
-                        startY = 150f
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color(0xDD0D0B0F)),
+                            startY = 0f,
+                            endY = Float.POSITIVE_INFINITY
+                        )
                     )
-                )
-        )
+            )
+        }
 
         Column(
             modifier = Modifier
@@ -668,6 +645,56 @@ fun AlbumArtistCard(title: String, subtitle: String, song: Song?, onClick: () ->
         ) {
             Text(title, style = MyTubeTypography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, color = Tokens.textPrimary), maxLines = 1)
             Text(subtitle, style = MyTubeTypography.labelSmall.copy(color = Tokens.textSecondary), maxLines = 1)
+        }
+    }
+}
+
+@Composable
+fun PillTabRow(selectedIndex: Int, tabs: List<String>, onTabSelect: (Int) -> Unit) {
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Tokens.bgSurface)
+    ) {
+        val tabWidth = maxWidth / tabs.size
+        val indicatorOffset by animateDpAsState(
+            targetValue = tabWidth * selectedIndex,
+            animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
+            label = "tab_indicator"
+        )
+        Box(
+            modifier = Modifier
+                .width(tabWidth)
+                .fillMaxHeight()
+                .offset(x = indicatorOffset)
+                .clip(RoundedCornerShape(20.dp))
+                .background(Tokens.glassTint)
+                .border(1.dp, Tokens.accentPrimary.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+        )
+        Row(Modifier.fillMaxSize()) {
+            tabs.forEachIndexed { i, label ->
+                Box(
+                    modifier = Modifier
+                        .width(tabWidth)
+                        .fillMaxHeight()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { onTabSelect(i) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        style = MyTubeTypography.bodyMedium.copy(
+                            color = if (i == selectedIndex) Tokens.accentPrimary else Tokens.textSecondary,
+                            fontWeight = if (i == selectedIndex) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    )
+                }
+            }
         }
     }
 }
