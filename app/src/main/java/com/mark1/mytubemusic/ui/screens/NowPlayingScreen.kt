@@ -138,13 +138,12 @@ fun SharedTransitionScope.NowPlayingScreen(
                 )
             )
         }
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp)
-        ) {
+        val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+        val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+
+        val topBar = @Composable {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = if (isLandscape) 0.dp else 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -155,36 +154,34 @@ fun SharedTransitionScope.NowPlayingScreen(
                     Icon(Icons.Default.List, contentDescription = "Queue", tint = MyTubeColors.TextPrimary, modifier = Modifier.size(32.dp))
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            // CD Animation
-            var artBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
-            
-            LaunchedEffect(currentSong?.uri) {
-                currentSong?.uri?.let { uri ->
-                    try {
-                        val retriever = MediaMetadataRetriever()
-                        context.contentResolver.openFileDescriptor(Uri.parse(uri), "r")?.use { pfd ->
-                            retriever.setDataSource(pfd.fileDescriptor)
-                            val art = retriever.embeddedPicture
-                            if (art != null) {
-                                artBitmap = BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
-                            } else {
-                                artBitmap = null
-                            }
+        var artBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+        LaunchedEffect(currentSong?.uri) {
+            currentSong?.uri?.let { uri ->
+                try {
+                    val retriever = MediaMetadataRetriever()
+                    context.contentResolver.openFileDescriptor(Uri.parse(uri), "r")?.use { pfd ->
+                        retriever.setDataSource(pfd.fileDescriptor)
+                        val art = retriever.embeddedPicture
+                        if (art != null) {
+                            artBitmap = BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
+                        } else {
+                            artBitmap = null
                         }
-                        retriever.release()
-                    } catch (e: Exception) {
-                        artBitmap = null
                     }
+                    retriever.release()
+                } catch (e: Exception) {
+                    artBitmap = null
                 }
             }
+        }
 
+        val cdOrLyrics = @Composable {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(260.dp),
+                    .height(if (isLandscape) 220.dp else 260.dp),
                 contentAlignment = Alignment.Center
             ) {
                 androidx.compose.animation.AnimatedVisibility(
@@ -197,7 +194,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                         isPlaying = isPlaying,
                         artBitmap = artBitmap,
                         modifier = Modifier
-                            .fillMaxWidth(0.85f)
+                            .fillMaxWidth(if (isLandscape) 0.7f else 0.85f)
                             .aspectRatio(1f)
                             .widthIn(max = 450.dp)
                             .shadow(32.dp, CircleShape, spotColor = MyTubeColors.AccentSkyBlue.copy(alpha = 0.4f), ambientColor = MyTubeColors.AccentSkyBlue)
@@ -208,63 +205,58 @@ fun SharedTransitionScope.NowPlayingScreen(
                             )
                     )
                 }
-
                 androidx.compose.animation.AnimatedVisibility(
                     visible = showLyrics,
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
-                    LyricsView(
-                        lyrics = currentLyrics,
-                        currentProgress = progress
+                    LyricsView(lyrics = currentLyrics, currentProgress = progress)
+                }
+            }
+        }
+
+        val songInfo = @Composable {
+            Column(horizontalAlignment = if (isLandscape) Alignment.Start else Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = currentSong?.title ?: "No Song",
+                    fontSize = if (isLandscape) 24.sp else 32.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                    letterSpacing = (-0.5).sp,
+                    color = MyTubeColors.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = currentSong?.artist ?: "Unknown Artist",
+                    fontSize = if (isLandscape) 16.sp else 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                    letterSpacing = 1.5.sp,
+                    color = MyTubeColors.TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (currentLyrics.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = if (showLyrics) "Hide Lyrics" else "Show Lyrics",
+                        color = MyTubeColors.AccentSkyBlue,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { showLyrics = !showLyrics }.padding(8.dp)
                     )
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Song Info
-            Text(
-                text = currentSong?.title ?: "No Song",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.ExtraBold,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
-                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                letterSpacing = (-0.5).sp,
-                color = MyTubeColors.TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = currentSong?.artist ?: "Unknown Artist",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Medium,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
-                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                letterSpacing = 1.5.sp,
-                color = MyTubeColors.TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            if (currentLyrics.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = if (showLyrics) "Hide Lyrics" else "Show Lyrics",
-                    color = MyTubeColors.AccentSkyBlue,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable { showLyrics = !showLyrics }.padding(8.dp).align(Alignment.CenterHorizontally)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Extra Controls (Sleep Timer & Speed)
+        val extraControls = @Composable {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
+                horizontalArrangement = if (isLandscape) Arrangement.Start else Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
@@ -297,16 +289,14 @@ fun SharedTransitionScope.NowPlayingScreen(
                     }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(24.dp))
+        val duration = currentSong?.duration?.takeIf { it > 0 } ?: 1L
+        var sliderPosition by remember(progress) { mutableFloatStateOf(progress.toFloat()) }
+        var isDragging by remember { mutableStateOf(false) }
+        fun Long.toFormatTime(): String = String.format("%02d:%02d", this / 1000 / 60, (this / 1000) % 60)
 
-            // Timeline / Seekbar
-            val duration = currentSong?.duration?.takeIf { it > 0 } ?: 1L
-            var sliderPosition by remember(progress) { mutableFloatStateOf(progress.toFloat()) }
-            var isDragging by remember { mutableStateOf(false) }
-
-            fun Long.toFormatTime(): String = String.format("%02d:%02d", this / 1000 / 60, (this / 1000) % 60)
-
+        val timeline = @Composable {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Slider(
                     value = if (isDragging) sliderPosition else progress.toFloat().coerceIn(0f, duration.toFloat()),
@@ -334,14 +324,13 @@ fun SharedTransitionScope.NowPlayingScreen(
                     Text(text = duration.toFormatTime(), color = MyTubeColors.TextPrimary.copy(alpha = 0.6f), fontSize = 12.sp)
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Controls (Glassmorphism style)
+        val mainControls = @Composable {
             Surface(
                 color = MyTubeColors.TextPrimary.copy(alpha = 0.1f),
                 shape = RoundedCornerShape(24.dp),
-                modifier = Modifier.fillMaxWidth().height(100.dp)
+                modifier = Modifier.fillMaxWidth().height(if (isLandscape) 80.dp else 100.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxSize(),
@@ -349,23 +338,13 @@ fun SharedTransitionScope.NowPlayingScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = { playerViewModel.toggleShuffleMode() }) {
-                        Icon(
-                            imageVector = Icons.Default.Shuffle, 
-                            contentDescription = "Shuffle", 
-                            tint = if (shuffleModeEnabled) MyTubeColors.AccentSkyBlue else MyTubeColors.TextSecondary, 
-                            modifier = Modifier.size(32.dp)
-                        )
+                        Icon(Icons.Default.Shuffle, contentDescription = "Shuffle", tint = if (shuffleModeEnabled) MyTubeColors.AccentSkyBlue else MyTubeColors.TextSecondary, modifier = Modifier.size(32.dp))
                     }
                     IconButton(onClick = { playerViewModel.skipToPrevious() }) {
                         Icon(Icons.Default.SkipPrevious, contentDescription = "Previous", tint = MyTubeColors.TextPrimary, modifier = Modifier.size(48.dp))
                     }
                     IconButton(onClick = { playerViewModel.togglePlayPause() }) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = "Play/Pause",
-                            tint = MyTubeColors.TextPrimary,
-                            modifier = Modifier.size(64.dp)
-                        )
+                        Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = "Play/Pause", tint = MyTubeColors.TextPrimary, modifier = Modifier.size(64.dp))
                     }
                     IconButton(onClick = { playerViewModel.skipToNext() }) {
                         Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = MyTubeColors.TextPrimary, modifier = Modifier.size(48.dp))
@@ -376,17 +355,63 @@ fun SharedTransitionScope.NowPlayingScreen(
                             Player.REPEAT_MODE_ALL -> Icons.Default.Repeat to MyTubeColors.AccentSkyBlue
                             else -> Icons.Default.Repeat to MyTubeColors.TextSecondary
                         }
-                        Icon(
-                            imageVector = icon, 
-                            contentDescription = "Repeat", 
-                            tint = tint, 
-                            modifier = Modifier.size(32.dp)
-                        )
+                        Icon(icon, contentDescription = "Repeat", tint = tint, modifier = Modifier.size(32.dp))
                     }
                 }
             }
-            
-            Spacer(modifier = Modifier.height(32.dp))
+        }
+
+        if (isLandscape) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 32.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    topBar()
+                    Spacer(modifier = Modifier.weight(1f))
+                    cdOrLyrics()
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+                Spacer(modifier = Modifier.width(32.dp))
+                Column(
+                    modifier = Modifier.weight(1.2f).fillMaxHeight(),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    songInfo()
+                    Spacer(modifier = Modifier.height(12.dp))
+                    extraControls()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    timeline()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    mainControls()
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp)
+            ) {
+                topBar()
+                Spacer(modifier = Modifier.weight(1f))
+                cdOrLyrics()
+                Spacer(modifier = Modifier.weight(1f))
+                songInfo()
+                Spacer(modifier = Modifier.height(16.dp))
+                extraControls()
+                Spacer(modifier = Modifier.height(24.dp))
+                timeline()
+                Spacer(modifier = Modifier.height(32.dp))
+                mainControls()
+                Spacer(modifier = Modifier.height(32.dp))
+            }
         }
     }
 
