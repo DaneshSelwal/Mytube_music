@@ -14,6 +14,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -126,9 +128,19 @@ fun SharedTransitionScope.HomeScreen(
                         "My Library",
                         fontSize = 36.sp,
                         fontWeight = FontWeight.Black,
-                        color = Color.White,
+                        color = MyTubeColors.TextPrimary,
                         modifier = Modifier.padding(start = 24.dp, top = 48.dp).align(Alignment.CenterStart)
                     )
+                    IconButton(
+                        onClick = { MyTubeColors.isDarkTheme = !MyTubeColors.isDarkTheme },
+                        modifier = Modifier.padding(end = 16.dp, top = 48.dp).align(Alignment.CenterEnd)
+                    ) {
+                        Icon(
+                            imageVector = if (MyTubeColors.isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
+                            contentDescription = "Toggle Theme",
+                            tint = MyTubeColors.TextPrimary
+                        )
+                    }
                 }
 
                 if (isScanning) {
@@ -272,6 +284,39 @@ fun SharedTransitionScope.HomeScreen(
 @Composable
 fun SongItem(song: Song, isCurrent: Boolean, onClick: () -> Unit) {
     val cardColor = if (isCurrent) MyTubeColors.AccentGlow else getSongColorHash(song.title)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var artBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    
+    LaunchedEffect(song.uri) {
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val fileName = "art_${song.title.hashCode()}"
+            val cachedFile = java.io.File(context.cacheDir, "$fileName.jpg")
+            if (cachedFile.exists()) {
+                artBitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
+            } else {
+                try {
+                    val retriever = android.media.MediaMetadataRetriever()
+                    context.contentResolver.openFileDescriptor(android.net.Uri.parse(song.uri), "r")?.use { pfd ->
+                        retriever.setDataSource(pfd.fileDescriptor)
+                        val art = retriever.embeddedPicture
+                        if (art != null) {
+                            artBitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
+                        } else {
+                            val success = com.mark1.mytubemusic.util.ArtworkScraper.fetchAndSaveAlbumArt(
+                                "${song.title} ${song.artist}", 
+                                context.cacheDir, 
+                                fileName
+                            )
+                            if (success) {
+                                artBitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
+                            }
+                        }
+                    }
+                    retriever.release()
+                } catch (e: Exception) {}
+            }
+        }
+    }
     
     Row(
         modifier = Modifier
@@ -287,22 +332,31 @@ fun SongItem(song: Song, isCurrent: Boolean, onClick: () -> Unit) {
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
-                .background(if (isCurrent) MyTubeColors.AccentSkyBlue else Color.White.copy(alpha = 0.1f)),
+                .background(if (isCurrent) MyTubeColors.AccentSkyBlue else MyTubeColors.GlassSurface),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.MusicNote,
-                contentDescription = null,
-                tint = if (isCurrent) Color.White else Color.White.copy(alpha = 0.5f)
-            )
+            if (artBitmap != null) {
+                androidx.compose.foundation.Image(
+                    bitmap = artBitmap!!,
+                    contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = null,
+                    tint = if (isCurrent) MyTubeColors.TextPrimary else MyTubeColors.TextSecondary
+                )
+            }
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = song.title,
                 fontSize = 16.sp,
-                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
-                color = if (isCurrent) MyTubeColors.AccentSkyBlue else Color.White,
+                fontWeight = FontWeight.Bold,
+                color = if (isCurrent) MyTubeColors.AccentSkyBlue else MyTubeColors.TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -310,7 +364,7 @@ fun SongItem(song: Song, isCurrent: Boolean, onClick: () -> Unit) {
             Text(
                 text = song.artist,
                 fontSize = 14.sp,
-                color = Color.White.copy(alpha = 0.6f),
+                color = MyTubeColors.TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

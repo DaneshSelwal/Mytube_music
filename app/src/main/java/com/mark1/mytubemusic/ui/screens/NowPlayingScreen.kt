@@ -109,7 +109,7 @@ fun SharedTransitionScope.NowPlayingScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0A0A12))
+            .background(MyTubeColors.BackgroundDeep)
     ) {
         Canvas(modifier = Modifier.fillMaxSize().graphicsLayer {
             scaleX = pulseScale
@@ -149,10 +149,10 @@ fun SharedTransitionScope.NowPlayingScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Back", tint = Color.White, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Back", tint = MyTubeColors.TextPrimary, modifier = Modifier.size(32.dp))
                 }
                 IconButton(onClick = onNavigateToQueue) {
-                    Icon(Icons.Default.List, contentDescription = "Queue", tint = Color.White, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.List, contentDescription = "Queue", tint = MyTubeColors.TextPrimary, modifier = Modifier.size(32.dp))
                 }
             }
 
@@ -229,8 +229,9 @@ fun SharedTransitionScope.NowPlayingScreen(
                 fontSize = 32.sp,
                 fontWeight = FontWeight.ExtraBold,
                 fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                 letterSpacing = (-0.5).sp,
-                color = Color.White,
+                color = MyTubeColors.TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -240,8 +241,9 @@ fun SharedTransitionScope.NowPlayingScreen(
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium,
                 fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                 letterSpacing = 1.5.sp,
-                color = Color.White.copy(alpha = 0.7f),
+                color = MyTubeColors.TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -266,7 +268,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    color = Color.White.copy(alpha = 0.1f),
+                    color = MyTubeColors.TextPrimary.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.clickable { showSleepTimerDialog = true }
                 ) {
@@ -274,14 +276,14 @@ fun SharedTransitionScope.NowPlayingScreen(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Timer, contentDescription = "Sleep Timer", tint = if (sleepTimerText != null) MyTubeColors.AccentSkyBlue else Color.White, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Timer, contentDescription = "Sleep Timer", tint = if (sleepTimerText != null) MyTubeColors.AccentSkyBlue else MyTubeColors.TextPrimary, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = sleepTimerText ?: "Timer", color = if (sleepTimerText != null) MyTubeColors.AccentSkyBlue else Color.White, fontSize = 12.sp)
+                        Text(text = sleepTimerText ?: "Timer", color = if (sleepTimerText != null) MyTubeColors.AccentSkyBlue else MyTubeColors.TextPrimary, fontSize = 12.sp)
                     }
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Surface(
-                    color = Color.White.copy(alpha = 0.1f),
+                    color = MyTubeColors.TextPrimary.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.clickable { showSpeedDialog = true }
                 ) {
@@ -289,9 +291,9 @@ fun SharedTransitionScope.NowPlayingScreen(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Speed, contentDescription = "Speed", tint = if (playbackSpeed != 1.0f) MyTubeColors.AccentSkyBlue else Color.White, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Speed, contentDescription = "Speed", tint = if (playbackSpeed != 1.0f) MyTubeColors.AccentSkyBlue else MyTubeColors.TextPrimary, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "${playbackSpeed}x", color = if (playbackSpeed != 1.0f) MyTubeColors.AccentSkyBlue else Color.White, fontSize = 12.sp)
+                        Text(text = "${playbackSpeed}x", color = if (playbackSpeed != 1.0f) MyTubeColors.AccentSkyBlue else MyTubeColors.TextPrimary, fontSize = 12.sp)
                     }
                 }
             }
@@ -320,7 +322,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                     colors = SliderDefaults.colors(
                         thumbColor = MyTubeColors.AccentSkyBlue,
                         activeTrackColor = MyTubeColors.AccentSkyBlue,
-                        inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                        inactiveTrackColor = MyTubeColors.TextPrimary.copy(alpha = 0.3f)
                     ),
                     modifier = Modifier.fillMaxWidth().height(24.dp)
                 )
@@ -328,8 +330,8 @@ fun SharedTransitionScope.NowPlayingScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = if (isDragging) sliderPosition.toLong().toFormatTime() else progress.toFormatTime(), color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
-                    Text(text = duration.toFormatTime(), color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
+                    Text(text = if (isDragging) sliderPosition.toLong().toFormatTime() else progress.toFormatTime(), color = MyTubeColors.TextPrimary.copy(alpha = 0.6f), fontSize = 12.sp)
+                    Text(text = duration.toFormatTime(), color = MyTubeColors.TextPrimary.copy(alpha = 0.6f), fontSize = 12.sp)
                 }
             }
 
@@ -337,7 +339,7 @@ fun SharedTransitionScope.NowPlayingScreen(
 
             // Controls (Glassmorphism style)
             Surface(
-                color = Color.White.copy(alpha = 0.1f),
+                color = MyTubeColors.TextPrimary.copy(alpha = 0.1f),
                 shape = RoundedCornerShape(24.dp),
                 modifier = Modifier.fillMaxWidth().height(100.dp)
             ) {
@@ -350,29 +352,29 @@ fun SharedTransitionScope.NowPlayingScreen(
                         Icon(
                             imageVector = Icons.Default.Shuffle, 
                             contentDescription = "Shuffle", 
-                            tint = if (shuffleModeEnabled) MyTubeColors.AccentSkyBlue else Color.White.copy(alpha = 0.5f), 
+                            tint = if (shuffleModeEnabled) MyTubeColors.AccentSkyBlue else MyTubeColors.TextSecondary, 
                             modifier = Modifier.size(32.dp)
                         )
                     }
                     IconButton(onClick = { playerViewModel.skipToPrevious() }) {
-                        Icon(Icons.Default.SkipPrevious, contentDescription = "Previous", tint = Color.White, modifier = Modifier.size(48.dp))
+                        Icon(Icons.Default.SkipPrevious, contentDescription = "Previous", tint = MyTubeColors.TextPrimary, modifier = Modifier.size(48.dp))
                     }
                     IconButton(onClick = { playerViewModel.togglePlayPause() }) {
                         Icon(
                             imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = "Play/Pause",
-                            tint = Color.White,
+                            tint = MyTubeColors.TextPrimary,
                             modifier = Modifier.size(64.dp)
                         )
                     }
                     IconButton(onClick = { playerViewModel.skipToNext() }) {
-                        Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = Color.White, modifier = Modifier.size(48.dp))
+                        Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = MyTubeColors.TextPrimary, modifier = Modifier.size(48.dp))
                     }
                     IconButton(onClick = { playerViewModel.cycleRepeatMode() }) {
                         val (icon, tint) = when (repeatMode) {
                             Player.REPEAT_MODE_ONE -> Icons.Default.RepeatOne to MyTubeColors.AccentSkyBlue
                             Player.REPEAT_MODE_ALL -> Icons.Default.Repeat to MyTubeColors.AccentSkyBlue
-                            else -> Icons.Default.Repeat to Color.White.copy(alpha = 0.5f)
+                            else -> Icons.Default.Repeat to MyTubeColors.TextSecondary
                         }
                         Icon(
                             imageVector = icon, 
@@ -490,7 +492,7 @@ fun SharedTransitionScope.SpinningCDAnimation(
             }
             
             drawArc(
-                color = Color.White.copy(alpha = 0.12f),
+                color = MyTubeColors.TextPrimary.copy(alpha = 0.12f),
                 startAngle = 210f,
                 sweepAngle = 45f,
                 useCenter = false,
@@ -526,7 +528,7 @@ fun SharedTransitionScope.SpinningCDAnimation(
             modifier = Modifier
                 .fillMaxSize(0.04f)
                 .clip(CircleShape)
-                .background(Color.White)
+                .background(MyTubeColors.TextPrimary)
         )
     }
 }
@@ -554,7 +556,7 @@ fun LyricsView(lyrics: List<com.mark1.mytubemusic.utils.LyricLine>, currentProgr
             val isActive = index == activeIndex
             Text(
                 text = line.text,
-                color = if (isActive) MyTubeColors.AccentSkyBlue else Color.White.copy(alpha = 0.5f),
+                color = if (isActive) MyTubeColors.AccentSkyBlue else MyTubeColors.TextSecondary,
                 fontSize = if (isActive) 26.sp else 20.sp,
                 fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Medium,
                 fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
