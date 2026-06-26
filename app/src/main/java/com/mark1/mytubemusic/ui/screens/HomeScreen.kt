@@ -33,6 +33,10 @@ import androidx.work.Data
 import androidx.work.WorkManager
 import com.mark1.mytubemusic.worker.DownloadWorker
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -185,12 +189,26 @@ fun SharedTransitionScope.HomeScreen(
     val duration by playerViewModel.duration.collectAsState()
     
     var selectedTabIndex by remember { mutableStateOf(0) }
-    val tabs = listOf("Songs", "Albums", "Artists")
+    val tabs = listOf("Songs", "Albums", "Artists", "Playlists", "Online")
     val searchQuery by libraryViewModel.searchQuery.collectAsState()
     val filteredSongs by libraryViewModel.filteredSongs.collectAsState()
     val onlineSearchResults by libraryViewModel.onlineSearchResults.collectAsState()
+    val isOnlineSearching by libraryViewModel.isOnlineSearching.collectAsState()
     val albums by libraryViewModel.albums.collectAsState()
     val artists by libraryViewModel.artists.collectAsState()
+    val localPlaylists by libraryViewModel.localPlaylists.collectAsState()
+    val onlinePlaylists by libraryViewModel.onlinePlaylists.collectAsState()
+
+    var onlineSearchText by remember { mutableStateOf("") }
+
+    var showCreateLocalPlaylistDialog by remember { mutableStateOf(false) }
+    var showCreateOnlinePlaylistDialog by remember { mutableStateOf(false) }
+    var newPlaylistName by remember { mutableStateOf("") }
+    
+    var songToAddToLocalPlaylist by remember { mutableStateOf<Song?>(null) }
+    var songToAddToOnlinePlaylist by remember { mutableStateOf<Song?>(null) }
+    
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     val haptic = LocalHapticFeedback.current
     val backgroundBrush = Brush.verticalGradient(
@@ -240,26 +258,27 @@ fun SharedTransitionScope.HomeScreen(
                             ShimmerSongItem()
                         }
                     }
-                } else if (songs.isEmpty()) {
-                    EmptyLibrary()
                 } else {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { libraryViewModel.updateSearchQuery(it) },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                        placeholder = { Text("Search songs or artists...", color = Tokens.textSecondary) },
-                        singleLine = true,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Tokens.bgSurface,
-                            unfocusedContainerColor = Tokens.bgSurface,
-                            focusedTextColor = Tokens.textPrimary,
-                            unfocusedTextColor = Tokens.textPrimary,
-                            cursorColor = MyTubeColors.AccentSkyBlue,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        ),
-                        shape = RoundedCornerShape(24.dp)
-                    )
+                    // Local search only shown outside Online tab
+                    if (selectedTabIndex != 4) {
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { libraryViewModel.updateSearchQuery(it) },
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            placeholder = { Text("Search songs or artists...", color = Tokens.textSecondary) },
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Tokens.bgSurface,
+                                unfocusedContainerColor = Tokens.bgSurface,
+                                focusedTextColor = Tokens.textPrimary,
+                                unfocusedTextColor = Tokens.textPrimary,
+                                cursorColor = MyTubeColors.AccentSkyBlue,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            ),
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                    }
 
                     PillTabRow(
                         selectedIndex = selectedTabIndex,
@@ -273,15 +292,34 @@ fun SharedTransitionScope.HomeScreen(
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(bottom = if (currentSong != null) 180.dp else 16.dp)
+                                contentPadding = PaddingValues(bottom = if (currentSong != null) 96.dp else 16.dp)
                             ) {
-                                if (filteredSongs.isNotEmpty() || searchQuery.isBlank()) {
-                                    item { SectionHeader("LOCAL SONGS (${filteredSongs.size})") }
-                                    itemsIndexed(filteredSongs) { index, song ->
-                                        val isCurrent = currentSong?.uri == song.uri
-                                        SongItem(song = song, isCurrent = isCurrent, modifier = Modifier.animateItem(), onClick = {
-                                            playerViewModel.playQueue(filteredSongs, index)
-                                        })
+                                if (songs.isEmpty() && onlineSearchResults.isEmpty()) {
+                                    item {
+                                        Box(
+                                            modifier = Modifier.fillParentMaxHeight(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            EmptyLibrary()
+                                        }
+                                    }
+                                } else {
+                                    if (songs.isNotEmpty() && (filteredSongs.isNotEmpty() || searchQuery.isBlank())) {
+                                        item { SectionHeader("LOCAL SONGS (${filteredSongs.size})") }
+                                        itemsIndexed(filteredSongs) { index, song ->
+                                            val isCurrent = currentSong?.uri == song.uri
+                                            SongItem(
+                                                song = song, 
+                                                isCurrent = isCurrent, 
+                                                modifier = Modifier.animateItem(),
+                                                onAddClick = {
+                                                    songToAddToLocalPlaylist = song
+                                                },
+                                                onClick = {
+                                                    playerViewModel.playQueue(filteredSongs, index)
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                                 
@@ -289,9 +327,17 @@ fun SharedTransitionScope.HomeScreen(
                                     item { SectionHeader("ONLINE SEARCH RESULTS") }
                                     itemsIndexed(onlineSearchResults) { index, song ->
                                         val isCurrent = currentSong?.uri == song.uri
-                                        SongItem(song = song, isCurrent = isCurrent, modifier = Modifier.animateItem(), onClick = {
-                                            playerViewModel.playQueue(onlineSearchResults, index)
-                                        })
+                                        SongItem(
+                                            song = song, 
+                                            isCurrent = isCurrent, 
+                                            modifier = Modifier.animateItem(),
+                                            onAddClick = {
+                                                songToAddToOnlinePlaylist = song
+                                            },
+                                            onClick = {
+                                                playerViewModel.playQueue(onlineSearchResults, index)
+                                            }
+                                        )
                                     }
                                 }
                             }
@@ -300,7 +346,7 @@ fun SharedTransitionScope.HomeScreen(
                             LazyVerticalGrid(
                                 columns = GridCells.Fixed(2),
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(bottom = if (currentSong != null) 180.dp else 16.dp, start = 8.dp, end = 8.dp, top = 8.dp)
+                                contentPadding = PaddingValues(bottom = if (currentSong != null) 96.dp else 16.dp, start = 8.dp, end = 8.dp, top = 8.dp)
                             ) {
                                 items(albums.entries.toList()) { (album, albumSongs) ->
                                     val artist = albumSongs.firstOrNull()?.artist ?: "Unknown Artist"
@@ -315,7 +361,7 @@ fun SharedTransitionScope.HomeScreen(
                             LazyVerticalGrid(
                                 columns = GridCells.Fixed(3),
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(bottom = if (currentSong != null) 180.dp else 16.dp, start = 8.dp, end = 8.dp, top = 8.dp)
+                                contentPadding = PaddingValues(bottom = if (currentSong != null) 96.dp else 16.dp, start = 8.dp, end = 8.dp, top = 8.dp)
                             ) {
                                 items(artists.entries.toList()) { (artist, artistSongs) ->
                                     val albumCount = artistSongs.map { it.album }.distinct().size
@@ -326,6 +372,393 @@ fun SharedTransitionScope.HomeScreen(
                                 }
                             }
                         }
+                        3 -> { // Playlists
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = if (currentSong != null) 96.dp else 16.dp, start = 16.dp, end = 16.dp, top = 8.dp)
+                            ) {
+                                // Local Playlists Section
+                                item {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        SectionHeader("Local Playlists")
+                                        IconButton(onClick = {
+                                            newPlaylistName = ""
+                                            showCreateLocalPlaylistDialog = true
+                                        }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "Create Local Playlist",
+                                                tint = Tokens.accentPrimary
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (localPlaylists.isEmpty()) {
+                                    item {
+                                        Text(
+                                            text = "No local playlists available.",
+                                            color = Tokens.textDisabled,
+                                            style = MyTubeTypography.bodyMedium,
+                                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                                        )
+                                    }
+                                } else {
+                                    items(localPlaylists) { playlist ->
+                                        PlaylistItem(
+                                            name = playlist.name,
+                                            type = "Local",
+                                            onClick = {
+                                                scope.launch {
+                                                    libraryViewModel.playlistRepository.getSongsInPlaylist(playlist.id)
+                                                        .first().let { songsInPlaylist ->
+                                                            libraryViewModel.selectPlaylistDetail(
+                                                                id = playlist.id,
+                                                                type = "local",
+                                                                name = playlist.name,
+                                                                songs = songsInPlaylist
+                                                            )
+                                                            onNavigateToDetail()
+                                                        }
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+
+                                // Online Playlists Section
+                                item {
+                                    Spacer(modifier = Modifier.height(24.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        SectionHeader("Online Playlists")
+                                        IconButton(onClick = {
+                                            newPlaylistName = ""
+                                            showCreateOnlinePlaylistDialog = true
+                                        }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "Create Online Playlist",
+                                                tint = Tokens.accentPrimary
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (onlinePlaylists.isEmpty()) {
+                                    item {
+                                        Text(
+                                            text = "No online playlists available.",
+                                            color = Tokens.textDisabled,
+                                            style = MyTubeTypography.bodyMedium,
+                                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                                        )
+                                    }
+                                } else {
+                                    items(onlinePlaylists) { playlist ->
+                                        PlaylistItem(
+                                            name = playlist.name,
+                                            type = "Online",
+                                            onClick = {
+                                                scope.launch {
+                                                    libraryViewModel.onlinePlaylistRepository.getSongsInPlaylist(playlist.id)
+                                                        .first().let { onlineSongs ->
+                                                            val mappedSongs = onlineSongs.map { onlineSong ->
+                                                                Song(
+                                                                    uri = onlineSong.uri,
+                                                                    title = onlineSong.title,
+                                                                    artist = onlineSong.artist,
+                                                                    album = onlineSong.album,
+                                                                    duration = onlineSong.duration,
+                                                                    isFavorite = false,
+                                                                    albumArtUri = onlineSong.albumArtUri
+                                                                )
+                                                            }
+                                                            libraryViewModel.selectPlaylistDetail(
+                                                                id = playlist.id,
+                                                                type = "online",
+                                                                name = playlist.name,
+                                                                songs = mappedSongs
+                                                            )
+                                                            onNavigateToDetail()
+                                                        }
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        4 -> { // Online streaming tab
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                // Online search bar
+                                OutlinedTextField(
+                                    value = onlineSearchText,
+                                    onValueChange = {
+                                        onlineSearchText = it
+                                        libraryViewModel.updateSearchQuery(it)
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    placeholder = { Text("Search YouTube Music...", color = Tokens.textSecondary) },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = androidx.compose.material.icons.Icons.Default.MusicNote,
+                                            contentDescription = null,
+                                            tint = Tokens.accentPrimary
+                                        )
+                                    },
+                                    singleLine = true,
+                                    colors = TextFieldDefaults.colors(
+                                        focusedContainerColor = Tokens.bgSurface,
+                                        unfocusedContainerColor = Tokens.bgSurface,
+                                        focusedTextColor = Tokens.textPrimary,
+                                        unfocusedTextColor = Tokens.textPrimary,
+                                        cursorColor = MyTubeColors.AccentSkyBlue,
+                                        focusedIndicatorColor = Color.Transparent,
+                                        unfocusedIndicatorColor = Color.Transparent
+                                    ),
+                                    shape = RoundedCornerShape(24.dp)
+                                )
+
+                                when {
+                                    isOnlineSearching -> {
+                                        // Loading state
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                CircularProgressIndicator(
+                                                    color = Tokens.accentPrimary,
+                                                    modifier = Modifier.size(48.dp)
+                                                )
+                                                Spacer(Modifier.height(16.dp))
+                                                Text(
+                                                    "Searching YouTube Music...",
+                                                    style = MyTubeTypography.bodyMedium.copy(color = Tokens.textSecondary)
+                                                )
+                                            }
+                                        }
+                                    }
+                                    onlineSearchResults.isNotEmpty() -> {
+                                        LazyColumn(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentPadding = PaddingValues(bottom = if (currentSong != null) 96.dp else 16.dp)
+                                        ) {
+                                            item { SectionHeader("RESULTS (${onlineSearchResults.size})") }
+                                            itemsIndexed(onlineSearchResults) { index, song ->
+                                                val isCurrent = currentSong?.uri == song.uri
+                                                SongItem(
+                                                    song = song,
+                                                    isCurrent = isCurrent,
+                                                    modifier = Modifier.animateItem(),
+                                                    onAddClick = { songToAddToOnlinePlaylist = song },
+                                                    onClick = {
+                                                        playerViewModel.playQueue(onlineSearchResults, index)
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                    onlineSearchText.isNotBlank() -> {
+                                        // No results
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                Icon(
+                                                    imageVector = androidx.compose.material.icons.Icons.Default.MusicNote,
+                                                    contentDescription = null,
+                                                    tint = Tokens.textDisabled,
+                                                    modifier = Modifier.size(64.dp)
+                                                )
+                                                Spacer(Modifier.height(16.dp))
+                                                Text(
+                                                    "No results found",
+                                                    style = MyTubeTypography.titleLarge.copy(color = Tokens.textSecondary)
+                                                )
+                                            }
+                                        }
+                                    }
+                                    else -> {
+                                        // Empty / prompt state
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                Icon(
+                                                    imageVector = androidx.compose.material.icons.Icons.Default.MusicNote,
+                                                    contentDescription = null,
+                                                    tint = Tokens.accentPrimary.copy(alpha = 0.4f),
+                                                    modifier = Modifier.size(72.dp)
+                                                )
+                                                Spacer(Modifier.height(16.dp))
+                                                Text(
+                                                    "Stream ad-free music",
+                                                    style = MyTubeTypography.titleLarge.copy(color = Tokens.textPrimary)
+                                                )
+                                                Spacer(Modifier.height(8.dp))
+                                                Text(
+                                                    "Search for any song, artist or album above",
+                                                    style = MyTubeTypography.bodyMedium.copy(color = Tokens.textSecondary)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (showCreateLocalPlaylistDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showCreateLocalPlaylistDialog = false },
+                            title = { Text("Create Local Playlist", color = Tokens.textPrimary) },
+                            text = {
+                                OutlinedTextField(
+                                    value = newPlaylistName,
+                                    onValueChange = { newPlaylistName = it },
+                                    label = { Text("Playlist Name") },
+                                    singleLine = true
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        if (newPlaylistName.isNotBlank()) {
+                                            libraryViewModel.createLocalPlaylist(newPlaylistName)
+                                        }
+                                        showCreateLocalPlaylistDialog = false
+                                    }
+                                ) {
+                                    Text("Create", color = Tokens.accentPrimary)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showCreateLocalPlaylistDialog = false }) {
+                                    Text("Cancel", color = Tokens.textSecondary)
+                                }
+                            }
+                        )
+                    }
+
+                    if (showCreateOnlinePlaylistDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showCreateOnlinePlaylistDialog = false },
+                            title = { Text("Create Online Playlist", color = Tokens.textPrimary) },
+                            text = {
+                                OutlinedTextField(
+                                    value = newPlaylistName,
+                                    onValueChange = { newPlaylistName = it },
+                                    label = { Text("Playlist Name") },
+                                    singleLine = true
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        if (newPlaylistName.isNotBlank()) {
+                                            libraryViewModel.createOnlinePlaylist(newPlaylistName)
+                                        }
+                                        showCreateOnlinePlaylistDialog = false
+                                    }
+                                ) {
+                                    Text("Create", color = Tokens.accentPrimary)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showCreateOnlinePlaylistDialog = false }) {
+                                    Text("Cancel", color = Tokens.textSecondary)
+                                }
+                            }
+                        )
+                    }
+
+                    // Dialog for adding local song to local playlists
+                    if (songToAddToLocalPlaylist != null) {
+                        val song = songToAddToLocalPlaylist!!
+                        AlertDialog(
+                            onDismissRequest = { songToAddToLocalPlaylist = null },
+                            title = { Text("Add to Local Playlist", color = Tokens.textPrimary) },
+                            text = {
+                                if (localPlaylists.isEmpty()) {
+                                    Text("No local playlists found. Please create one first.", color = Tokens.textSecondary)
+                                } else {
+                                    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp)) {
+                                        items(localPlaylists) { playlist ->
+                                            Text(
+                                                text = playlist.name,
+                                                color = Tokens.textPrimary,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        libraryViewModel.addSongToLocalPlaylist(playlist.id, song.uri)
+                                                        songToAddToLocalPlaylist = null
+                                                    }
+                                                    .padding(vertical = 12.dp, horizontal = 8.dp),
+                                                style = MyTubeTypography.bodyLarge
+                                            )
+                                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Tokens.textDisabled.copy(alpha = 0.2f)))
+                                        }
+                                    }
+                                }
+                            },
+                            confirmButton = {},
+                            dismissButton = {
+                                TextButton(onClick = { songToAddToLocalPlaylist = null }) {
+                                    Text("Cancel", color = Tokens.textSecondary)
+                                }
+                            }
+                        )
+                    }
+
+                    // Dialog for adding online song to online playlists
+                    if (songToAddToOnlinePlaylist != null) {
+                        val song = songToAddToOnlinePlaylist!!
+                        AlertDialog(
+                            onDismissRequest = { songToAddToOnlinePlaylist = null },
+                            title = { Text("Add to Online Playlist", color = Tokens.textPrimary) },
+                            text = {
+                                if (onlinePlaylists.isEmpty()) {
+                                    Text("No online playlists found. Please create one first.", color = Tokens.textSecondary)
+                                } else {
+                                    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp)) {
+                                        items(onlinePlaylists) { playlist ->
+                                            Text(
+                                                text = playlist.name,
+                                                color = Tokens.textPrimary,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        libraryViewModel.addSongToOnlinePlaylist(playlist.id, song)
+                                                        songToAddToOnlinePlaylist = null
+                                                    }
+                                                    .padding(vertical = 12.dp, horizontal = 8.dp),
+                                                style = MyTubeTypography.bodyLarge
+                                            )
+                                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Tokens.textDisabled.copy(alpha = 0.2f)))
+                                        }
+                                    }
+                                }
+                            },
+                            confirmButton = {},
+                            dismissButton = {
+                                TextButton(onClick = { songToAddToOnlinePlaylist = null }) {
+                                    Text("Cancel", color = Tokens.textSecondary)
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -333,8 +766,9 @@ fun SharedTransitionScope.HomeScreen(
             if (currentSong != null) {
                 Box(
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(bottom = 24.dp, end = 24.dp)
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, bottom = 16.dp)
                 ) {
                     MiniPlayer(
                         animatedVisibilityScope = animatedVisibilityScope,
@@ -354,7 +788,14 @@ fun SharedTransitionScope.HomeScreen(
 }
 
 @Composable
-fun SongItem(modifier: Modifier = Modifier, song: Song, isCurrent: Boolean, onClick: () -> Unit) {
+fun SongItem(
+    modifier: Modifier = Modifier, 
+    song: Song, 
+    isCurrent: Boolean, 
+    onAddClick: (() -> Unit)? = null,
+    onRemoveClick: (() -> Unit)? = null,
+    onClick: () -> Unit
+) {
     val bgColor by animateColorAsState(
         if (isCurrent) Tokens.bgElevated else Color.Transparent,
         animationSpec = tween(300)
@@ -376,15 +817,6 @@ fun SongItem(modifier: Modifier = Modifier, song: Song, isCurrent: Boolean, onCl
                         val art = retriever.embeddedPicture
                         if (art != null) {
                             artBitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
-                        } else {
-                            val success = com.mark1.mytubemusic.util.ArtworkScraper.fetchAndSaveAlbumArt(
-                                "${song.title} ${song.artist}", 
-                                context.cacheDir, 
-                                fileName
-                            )
-                            if (success) {
-                                artBitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
-                            }
                         }
                     }
                     retriever.release()
@@ -471,34 +903,113 @@ fun SongItem(modifier: Modifier = Modifier, song: Song, isCurrent: Boolean, onCl
             )
         }
         
-                fun Long.toFormatTime(): String = String.format("%02d:%02d", this / 1000 / 60, (this / 1000) % 60)
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                song.duration.toFormatTime(),
-                style = MyTubeTypography.labelSmall.copy(color = Tokens.textDisabled, fontSize = 11.sp)
-            )
-            if (song.uri.startsWith("online:")) {
-                Spacer(Modifier.height(4.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End
+        ) {
+            if (onAddClick != null) {
                 IconButton(
-                    onClick = {
-                        val videoId = song.uri.removePrefix("online:")
-                        val workRequest = OneTimeWorkRequestBuilder<DownloadWorker>()
-                            .setInputData(
-                                Data.Builder()
-                                    .putString("videoId", videoId)
-                                    .putString("title", song.title)
-                                    .putString("artist", song.artist)
-                                    .build()
-                            )
-                            .build()
-                        WorkManager.getInstance(context).enqueue(workRequest)
-                        android.widget.Toast.makeText(context, "Downloading...", android.widget.Toast.LENGTH_SHORT).show()
-                    },
+                    onClick = onAddClick,
                     modifier = Modifier.size(24.dp)
                 ) {
-                    Icon(Icons.Default.Download, contentDescription = "Download", tint = Tokens.accentPrimary, modifier = Modifier.size(16.dp))
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add to playlist",
+                        tint = Tokens.accentPrimary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+            }
+            if (onRemoveClick != null) {
+                IconButton(
+                    onClick = onRemoveClick,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Remove from playlist",
+                        tint = Tokens.accentPrimary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+            }
+            
+            fun Long.toFormatTime(): String = String.format("%02d:%02d", this / 1000 / 60, (this / 1000) % 60)
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    song.duration.toFormatTime(),
+                    style = MyTubeTypography.labelSmall.copy(color = Tokens.textDisabled, fontSize = 11.sp)
+                )
+                if (song.uri.startsWith("online:")) {
+                    Spacer(Modifier.height(4.dp))
+                    IconButton(
+                        onClick = {
+                            val videoId = song.uri.removePrefix("online:")
+                            val workRequest = OneTimeWorkRequestBuilder<DownloadWorker>()
+                                .setInputData(
+                                    Data.Builder()
+                                        .putString("videoId", videoId)
+                                        .putString("title", song.title)
+                                        .putString("artist", song.artist)
+                                        .putString("albumArtUri", song.albumArtUri)
+                                        .build()
+                                )
+                                .build()
+                            WorkManager.getInstance(context).enqueue(workRequest)
+                            android.widget.Toast.makeText(context, "Downloading...", android.widget.Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(Icons.Default.Download, contentDescription = "Download", tint = Tokens.accentPrimary, modifier = Modifier.size(16.dp))
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun PlaylistItem(
+    name: String,
+    type: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .background(Tokens.bgElevated, RoundedCornerShape(12.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(Tokens.accentPrimary.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.MusicNote,
+                contentDescription = null,
+                tint = Tokens.accentPrimary
+            )
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = name,
+                color = Tokens.textPrimary,
+                style = MyTubeTypography.bodyLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "$type Playlist",
+                color = Tokens.textSecondary,
+                style = MyTubeTypography.labelSmall
+            )
         }
     }
 }
@@ -524,15 +1035,6 @@ fun AlbumArtistCard(modifier: Modifier = Modifier, title: String, subtitle: Stri
                         val art = retriever.embeddedPicture
                         if (art != null) {
                             artBitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
-                        } else {
-                            val success = com.mark1.mytubemusic.util.ArtworkScraper.fetchAndSaveAlbumArt(
-                                "${song.title} ${song.artist}", 
-                                context.cacheDir, 
-                                fileName
-                            )
-                            if (success) {
-                                artBitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
-                            }
                         }
                     }
                     retriever.release()

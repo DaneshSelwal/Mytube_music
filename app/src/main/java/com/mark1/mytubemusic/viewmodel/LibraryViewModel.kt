@@ -9,8 +9,12 @@ import android.database.Cursor
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mark1.mytubemusic.data.model.Song
+import com.mark1.mytubemusic.data.model.OnlinePlaylist
+import com.mark1.mytubemusic.data.model.OnlinePlaylistSong
 import com.mark1.mytubemusic.repository.SongRepository
 import com.mark1.mytubemusic.repository.OnlineSongRepository
+import com.mark1.mytubemusic.repository.OnlinePlaylistRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,10 +26,104 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
+import com.mark1.mytubemusic.data.model.Playlist
+import com.mark1.mytubemusic.repository.PlaylistRepository
+
+class LibraryViewModel(
+    private val repository: SongRepository,
+    val onlinePlaylistRepository: OnlinePlaylistRepository,
+    val playlistRepository: PlaylistRepository
+) : ViewModel() {
 
     val allSongs: StateFlow<List<Song>> = repository.allSongs
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val onlinePlaylists: StateFlow<List<OnlinePlaylist>> = onlinePlaylistRepository.allPlaylists
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val localPlaylists: StateFlow<List<Playlist>> = playlistRepository.allPlaylists
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val selectedDetailPlaylistId = MutableStateFlow<Long?>(null)
+    val selectedDetailPlaylistType = MutableStateFlow<String?>(null)
+
+    fun createLocalPlaylist(name: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            playlistRepository.createPlaylist(name)
+        }
+    }
+
+    fun deleteLocalPlaylist(playlistId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            playlistRepository.deletePlaylist(playlistId)
+        }
+    }
+
+    fun renameLocalPlaylist(playlistId: Long, name: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            playlistRepository.renamePlaylist(playlistId, name)
+        }
+    }
+
+    fun addSongToLocalPlaylist(playlistId: Long, songUri: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            playlistRepository.addSongToPlaylist(playlistId, songUri)
+        }
+    }
+
+    fun removeSongFromLocalPlaylist(playlistId: Long, songUri: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            playlistRepository.removeSongFromPlaylist(playlistId, songUri)
+        }
+    }
+
+    fun createOnlinePlaylist(name: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            onlinePlaylistRepository.createPlaylist(name)
+        }
+    }
+
+    fun deleteOnlinePlaylist(playlistId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            onlinePlaylistRepository.deletePlaylist(playlistId)
+        }
+    }
+
+    fun renameOnlinePlaylist(playlistId: Long, name: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            onlinePlaylistRepository.renamePlaylist(playlistId, name)
+        }
+    }
+
+    fun addSongToOnlinePlaylist(playlistId: Long, song: OnlinePlaylistSong) {
+        viewModelScope.launch(Dispatchers.IO) {
+            onlinePlaylistRepository.addSongToPlaylist(playlistId, song)
+        }
+    }
+
+    fun addSongToOnlinePlaylist(playlistId: Long, song: Song) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val onlineSong = OnlinePlaylistSong(
+                uri = song.uri,
+                title = song.title,
+                artist = song.artist,
+                album = song.album,
+                duration = song.duration,
+                albumArtUri = song.albumArtUri
+            )
+            onlinePlaylistRepository.addSongToPlaylist(playlistId, onlineSong)
+        }
+    }
+
+    fun removeSongFromOnlinePlaylist(playlistId: Long, songUri: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            onlinePlaylistRepository.removeSongFromPlaylist(playlistId, songUri)
+        }
+    }
+
+    fun getSongsInOnlinePlaylist(playlistId: Long): Flow<List<OnlinePlaylistSong>> {
+        return onlinePlaylistRepository.getSongsInPlaylist(playlistId)
+    }
 
     val albums: StateFlow<Map<String, List<Song>>> = allSongs.map { songs ->
         songs.groupBy { it.album }
@@ -46,16 +144,22 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
+    private val _isOnlineSearching = MutableStateFlow(false)
+    val isOnlineSearching: StateFlow<Boolean> = _isOnlineSearching.asStateFlow()
+
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
         searchJob?.cancel()
         if (query.length >= 3) {
             searchJob = viewModelScope.launch(Dispatchers.IO) {
                 kotlinx.coroutines.delay(500) // Debounce
+                _isOnlineSearching.value = true
                 _onlineSearchResults.value = onlineRepository.searchSongs(query)
+                _isOnlineSearching.value = false
             }
         } else {
             _onlineSearchResults.value = emptyList()
+            _isOnlineSearching.value = false
         }
     }
 
@@ -69,9 +173,51 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
     private val _selectedDetailSongs = MutableStateFlow<List<Song>>(emptyList())
     val selectedDetailSongs: StateFlow<List<Song>> = _selectedDetailSongs.asStateFlow()
 
+    private var detailCollectionJob: kotlinx.coroutines.Job? = null
+
+    fun selectPlaylistDetail(id: Long, type: String, name: String, songs: List<Song>) {
+        _selectedDetailTitle.value = name
+        _selectedDetailSongs.value = songs
+        selectedDetailPlaylistId.value = id
+        selectedDetailPlaylistType.value = type
+
+        detailCollectionJob?.cancel()
+        detailCollectionJob = viewModelScope.launch(Dispatchers.IO) {
+            if (type == "local") {
+                playlistRepository.getSongsInPlaylist(id).collect { updatedSongs ->
+                    _selectedDetailSongs.value = updatedSongs
+                }
+            } else if (type == "online") {
+                onlinePlaylistRepository.getSongsInPlaylist(id).collect { updatedOnlineSongs ->
+                    val mapped = updatedOnlineSongs.map { onlineSong ->
+                        Song(
+                            uri = onlineSong.uri,
+                            title = onlineSong.title,
+                            artist = onlineSong.artist,
+                            album = onlineSong.album,
+                            duration = onlineSong.duration,
+                            isFavorite = false,
+                            albumArtUri = onlineSong.albumArtUri
+                        )
+                    }
+                    _selectedDetailSongs.value = mapped
+                }
+            }
+        }
+    }
+
     fun selectDetail(title: String, songs: List<Song>) {
+        detailCollectionJob?.cancel()
         _selectedDetailTitle.value = title
         _selectedDetailSongs.value = songs
+        selectedDetailPlaylistId.value = null
+        selectedDetailPlaylistType.value = null
+    }
+
+    fun clearPlaylistDetail() {
+        detailCollectionJob?.cancel()
+        selectedDetailPlaylistId.value = null
+        selectedDetailPlaylistType.value = null
     }
 
 
@@ -161,8 +307,8 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
             if (songs.isNotEmpty()) {
                 _scanProgress.value = "Saving ${songs.size} songs to library..."
                 repository.insertSongs(songs)
-                repository.deleteSongsNotIn(songs.map { it.uri })
             }
+            repository.deleteSongsNotIn(songs.map { it.uri })
             
             withContext(Dispatchers.Main) {
                 _isScanning.value = false
