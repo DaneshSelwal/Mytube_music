@@ -4,5 +4,23 @@
 *.keystore
 keystore.properties
 
-# Unnecessary and build files
+# Build outputs
+build/
 app/build/
+*/build/
+
+# Gradle cache and local build state (never commit these)
+.gradle/
+local.properties
+
+# IDE files
+.idea/
+*.iml
+
+# Android Studio OS generated files
+.DS_Store
+Thumbs.db
+
+# APK — only commit intentional release APKs, not debug ones
+*.apk
+!MyTubeMusic.apk
