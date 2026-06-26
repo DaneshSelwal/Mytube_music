@@ -151,12 +151,14 @@ class PlayerViewModel : ViewModel() {
         }
         val metadata = mediaItem.mediaMetadata
         val trueDuration = player?.duration?.takeIf { it > 0 } ?: metadata.extras?.getLong("duration") ?: 0L
+        val albumArtUri = metadata.extras?.getString("albumArtUri")
         _currentSong.value = Song(
             uri = mediaItem.mediaId,
             title = metadata.title?.toString() ?: "Unknown",
             artist = metadata.artist?.toString() ?: "Unknown",
             album = metadata.albumTitle?.toString() ?: "Unknown",
-            duration = trueDuration
+            duration = trueDuration,
+            albumArtUri = albumArtUri
         )
         loadLyricsForUri(mediaItem.mediaId)
     }
@@ -190,12 +192,17 @@ class PlayerViewModel : ViewModel() {
 
     fun playSong(song: Song) {
         player?.let {
-            val extras = android.os.Bundle().apply { putLong("duration", song.duration) }
+            val extras = android.os.Bundle().apply {
+                putLong("duration", song.duration)
+                song.albumArtUri?.let { art -> putString("albumArtUri", art) }
+            }
+            val artworkUri = song.albumArtUri?.let { art -> android.net.Uri.parse(art) }
+                ?: android.net.Uri.parse(song.uri)
             val metadata = MediaMetadata.Builder()
                 .setTitle(song.title)
                 .setArtist(song.artist)
                 .setAlbumTitle(song.album)
-                .setArtworkUri(android.net.Uri.parse(song.uri))
+                .setArtworkUri(artworkUri)
                 .setExtras(extras)
                 .build()
                 
@@ -214,12 +221,17 @@ class PlayerViewModel : ViewModel() {
     fun playQueue(songs: List<Song>, startIndex: Int = 0) {
         player?.let { p ->
             val mediaItems = songs.map { song ->
-                val extras = android.os.Bundle().apply { putLong("duration", song.duration) }
+                val extras = android.os.Bundle().apply {
+                    putLong("duration", song.duration)
+                    song.albumArtUri?.let { art -> putString("albumArtUri", art) }
+                }
+                val artworkUri = song.albumArtUri?.let { art -> android.net.Uri.parse(art) }
+                    ?: android.net.Uri.parse(song.uri)
                 val metadata = MediaMetadata.Builder()
                     .setTitle(song.title)
                     .setArtist(song.artist)
                     .setAlbumTitle(song.album)
-                    .setArtworkUri(android.net.Uri.parse(song.uri))
+                    .setArtworkUri(artworkUri)
                     .setExtras(extras)
                     .build()
                     
@@ -275,6 +287,11 @@ class PlayerViewModel : ViewModel() {
         }
     }
 
+    fun cancelSleepTimer() {
+        sleepTimerJob?.cancel()
+        _sleepTimerText.value = null
+    }
+
     fun setSleepTimer(minutes: Int) {
         sleepTimerJob?.cancel()
         if (minutes <= 0) {
@@ -282,10 +299,6 @@ class PlayerViewModel : ViewModel() {
             return
         }
 
-    fun cancelSleepTimer() {
-        sleepTimerJob?.cancel()
-        _sleepTimerText.value = null
-    }
         sleepTimerJob = viewModelScope.launch {
             var remainingSeconds = minutes * 60
             while (remainingSeconds > 0) {
