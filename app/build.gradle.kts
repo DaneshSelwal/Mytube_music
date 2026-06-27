@@ -115,7 +115,5 @@ dependencies {
     testImplementation("org.json:json:20231013")
 
     // NewPipe Extractor — reliable YouTube/YouTube Music stream extraction
-    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.24.2") {
-        exclude(group = "org.mozilla", module = "rhino")
-    }
+    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.24.2")
 }

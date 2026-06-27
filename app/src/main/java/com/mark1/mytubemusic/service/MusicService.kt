@@ -11,6 +11,10 @@ import com.google.common.util.concurrent.ListenableFuture
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.datasource.DataSpec
+import com.mark1.mytubemusic.repository.OnlineSongRepository
+import kotlinx.coroutines.runBlocking
 
 
 
@@ -26,13 +30,36 @@ class MusicService : MediaSessionService() {
             .setUsage(C.USAGE_MEDIA)
             .build()
 
-        // Standard HTTP data source — stream URLs are pre-resolved by PlayerViewModel
+        // Standard HTTP data source with dynamic on-demand stream resolution
         val httpDataSourceFactory = DefaultHttpDataSource.Factory()
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(15_000)
             .setReadTimeoutMs(15_000)
         val dataSourceFactory = DefaultDataSource.Factory(this, httpDataSourceFactory)
-        val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
+
+        val onlineRepository = OnlineSongRepository()
+        val resolvingDataSourceFactory = ResolvingDataSource.Factory(
+            dataSourceFactory,
+            object : ResolvingDataSource.Resolver {
+                override fun resolveDataSpec(dataSpec: DataSpec): DataSpec {
+                    val uri = dataSpec.uri
+                    if (uri.scheme == "online") {
+                        val videoId = uri.schemeSpecificPart
+                        val streamUrl = runBlocking {
+                            onlineRepository.getStreamUrl(videoId)
+                        }
+                        if (streamUrl != null) {
+                            return dataSpec.buildUpon()
+                                .setUri(android.net.Uri.parse(streamUrl))
+                                .build()
+                        }
+                    }
+                    return dataSpec
+                }
+            }
+        )
+
+        val mediaSourceFactory = DefaultMediaSourceFactory(resolvingDataSourceFactory)
 
         player = ExoPlayer.Builder(this)
             .setAudioAttributes(audioAttributes, true)
@@ -47,7 +74,7 @@ class MusicService : MediaSessionService() {
                     controller: MediaSession.ControllerInfo,
                     mediaItems: MutableList<MediaItem>
                 ): ListenableFuture<MutableList<MediaItem>> {
-                    // URIs are pre-resolved by PlayerViewModel — pass items through unchanged
+                    // URIs are resolved dynamically on-demand — pass items through unchanged
                     return Futures.immediateFuture(mediaItems)
                 }
             })
@@ -60,12 +87,9 @@ class MusicService : MediaSessionService() {
 
     override fun onTaskRemoved(rootIntent: android.content.Intent?) {
         val player = mediaSession?.player
-        if (player != null) {
-            if (player.playWhenReady) {
-                player.pause()
-            }
+        if (player == null || !player.playWhenReady) {
+            stopSelf()
         }
-        stopSelf()
         super.onTaskRemoved(rootIntent)
     }
 

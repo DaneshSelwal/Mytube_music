@@ -61,7 +61,7 @@ fun SharedTransitionScope.DetailScreen(
     androidx.compose.runtime.LaunchedEffect(songs.firstOrNull()?.uri) {
         val song = songs.firstOrNull() ?: return@LaunchedEffect
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            val fileName = "art_${song.title.hashCode()}"
+            val fileName = "art_${(song.title + "_" + song.artist).hashCode()}"
             val cachedFile = java.io.File(context.cacheDir, "$fileName.jpg")
             if (cachedFile.exists()) {
                 artBitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()

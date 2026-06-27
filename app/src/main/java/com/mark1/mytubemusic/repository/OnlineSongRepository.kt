@@ -9,4 +9,6 @@ class OnlineSongRepository {
     suspend fun searchSongs(query: String): List<Song> = youtubeExtractor.searchSongs(query)
 
     suspend fun getStreamUrl(videoId: String): String? = youtubeExtractor.getStreamUrl(videoId)
+
+    suspend fun getSongMetadata(videoId: String): Song? = youtubeExtractor.getSongMetadata(videoId)
 }

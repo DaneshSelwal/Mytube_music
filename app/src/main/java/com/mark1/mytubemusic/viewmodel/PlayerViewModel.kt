@@ -13,7 +13,6 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.mark1.mytubemusic.data.model.Song
 import com.mark1.mytubemusic.service.MusicService
-import com.mark1.mytubemusic.repository.OnlineSongRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,8 +26,6 @@ import com.mark1.mytubemusic.util.LyricLine
 import com.mark1.mytubemusic.util.LrcParser
 
 class PlayerViewModel : ViewModel() {
-
-    private val onlineRepository = OnlineSongRepository()
 
     private var controllerFuture: ListenableFuture<MediaController>? = null
     var player: MediaController? = null
@@ -134,13 +131,15 @@ class PlayerViewModel : ViewModel() {
         for (i in 0 until p.mediaItemCount) {
             val item = p.getMediaItemAt(i)
             val metadata = item.mediaMetadata
+            val albumArtUri = metadata.artworkUri?.toString() ?: metadata.extras?.getString("albumArtUri")
             currentQueue.add(
                 Song(
                     uri = item.mediaId,
                     title = metadata.title?.toString() ?: "Unknown",
                     artist = metadata.artist?.toString() ?: "Unknown",
                     album = metadata.albumTitle?.toString() ?: "Unknown",
-                    duration = metadata.extras?.getLong("duration") ?: 0L
+                    duration = metadata.extras?.getLong("duration") ?: 0L,
+                    albumArtUri = albumArtUri
                 )
             )
         }
@@ -170,6 +169,10 @@ class PlayerViewModel : ViewModel() {
     private fun loadLyricsForUri(uriString: String) {
         val context = appContext ?: return
         viewModelScope.launch(Dispatchers.IO) {
+            if (uriString.startsWith("online:")) {
+                _currentLyrics.value = emptyList()
+                return@launch
+            }
             try {
                 val uri = android.net.Uri.parse(uriString)
                 var dataPath: String? = null
@@ -183,7 +186,12 @@ class PlayerViewModel : ViewModel() {
                 }
                 
                 if (dataPath != null) {
-                    val lrcPath = dataPath!!.replace(Regex("(?i)\\.mp3$"), ".lrc")
+                    val lastDotIndex = dataPath!!.lastIndexOf('.')
+                    val lrcPath = if (lastDotIndex != -1) {
+                        dataPath!!.substring(0, lastDotIndex) + ".lrc"
+                    } else {
+                        dataPath!! + ".lrc"
+                    }
                     _currentLyrics.value = LrcParser.getLyricsFromFile(lrcPath)
                 } else {
                     _currentLyrics.value = emptyList()
@@ -196,8 +204,6 @@ class PlayerViewModel : ViewModel() {
 
     /**
      * Build a MediaItem for the given song.
-     * For online songs (uri starts with "online:"), resolves the real stream URL
-     * asynchronously before passing to ExoPlayer.
      * The mediaId always stays as the original song.uri so identity tracking works.
      */
     private suspend fun buildMediaItem(song: Song): MediaItem? {
@@ -214,33 +220,21 @@ class PlayerViewModel : ViewModel() {
             .setExtras(extras)
             .build()
 
-        // Resolve online URI to real HTTPS stream URL before ExoPlayer touches it
-        val playbackUri: android.net.Uri = if (song.uri.startsWith("online:")) {
-            val videoId = song.uri.removePrefix("online:")
-            val streamUrl = withContext(Dispatchers.IO) {
-                onlineRepository.getStreamUrl(videoId)
-            }
-            if (streamUrl == null) return null  // stream resolution failed
-            android.net.Uri.parse(streamUrl)
-        } else {
-            android.net.Uri.parse(song.uri)
-        }
-
         return MediaItem.Builder()
             .setMediaId(song.uri)          // keep original URI as stable ID
-            .setUri(playbackUri)           // real playback URL
+            .setUri(android.net.Uri.parse(song.uri))           // stable playback URL (resolved dynamically later)
             .setMediaMetadata(metadata)
             .build()
     }
 
     fun playSong(song: Song) {
         val p = player ?: return
-        // Show song in player immediately — before URL resolution — for instant feedback
+        // Show song in player immediately for instant feedback
         _currentSong.value = song
         viewModelScope.launch {
             val mediaItem = buildMediaItem(song)
             if (mediaItem == null) {
-                android.util.Log.e("PlayerViewModel", "Failed to resolve stream for ${song.title}")
+                android.util.Log.e("PlayerViewModel", "Failed to build media item for ${song.title}")
                 _currentSong.value = null
                 return@launch
             }
@@ -256,23 +250,11 @@ class PlayerViewModel : ViewModel() {
         // Show tapped song immediately in the player for instant UI feedback
         _currentSong.value = clickedSong
         viewModelScope.launch {
-            // Step 1: Resolve and play just the tapped song first
-            val firstItem = buildMediaItem(clickedSong)
-            if (firstItem == null) {
-                android.util.Log.e("PlayerViewModel", "Failed to resolve stream for ${clickedSong.title}")
-                _currentSong.value = null
-                return@launch
-            }
-            p.setMediaItem(firstItem)
+            val mediaItems = songs.mapNotNull { buildMediaItem(it) }
+            p.setMediaItems(mediaItems)
+            p.seekTo(startIndex, 0L)
             p.prepare()
             p.play()
-
-            // Step 2: Lazily resolve the rest of the queue one-by-one in background
-            val remaining = songs.filterIndexed { i, _ -> i != startIndex }
-            for (song in remaining) {
-                val item = buildMediaItem(song) ?: continue
-                p.addMediaItem(item)
-            }
         }
     }
 

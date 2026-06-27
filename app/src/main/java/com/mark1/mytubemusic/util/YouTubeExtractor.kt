@@ -1,6 +1,5 @@
 package com.mark1.mytubemusic.util
 
-import android.util.Log
 import com.mark1.mytubemusic.data.model.Song
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -20,6 +19,56 @@ import org.schabi.newpipe.extractor.stream.AudioStream
 import org.schabi.newpipe.extractor.stream.StreamExtractor
 
 private const val TAG = "YouTubeExtractor"
+
+private object Log {
+    private val logClass: Class<*>? = try {
+        Class.forName("android.util.Log")
+    } catch (e: Exception) {
+        null
+    }
+
+    private val dMethod = try { logClass?.getMethod("d", String::class.java, String::class.java) } catch (e: Exception) { null }
+    private val wMethod = try { logClass?.getMethod("w", String::class.java, String::class.java) } catch (e: Exception) { null }
+    private val eMethod = try { logClass?.getMethod("e", String::class.java, String::class.java, Throwable::class.java) } catch (e: Exception) { null }
+
+    fun d(tag: String, msg: String) {
+        if (dMethod != null) {
+            try {
+                dMethod.invoke(null, tag, msg)
+            } catch (e: Exception) {
+                println("[$tag] D: $msg")
+            }
+        } else {
+            println("[$tag] D: $msg")
+        }
+    }
+
+    fun w(tag: String, msg: String) {
+        if (wMethod != null) {
+            try {
+                wMethod.invoke(null, tag, msg)
+            } catch (e: Exception) {
+                println("[$tag] W: $msg")
+            }
+        } else {
+            println("[$tag] W: $msg")
+        }
+    }
+
+    fun e(tag: String, msg: String, tr: Throwable? = null) {
+        if (eMethod != null) {
+            try {
+                eMethod.invoke(null, tag, msg, tr)
+            } catch (e: Exception) {
+                println("[$tag] E: $msg")
+                println(tr?.stackTraceToString())
+            }
+        } else {
+            println("[$tag] E: $msg")
+            println(tr?.stackTraceToString())
+        }
+    }
+}
 
 /**
  * OkHttp-based Downloader bridge required by NewPipe Extractor.
@@ -55,22 +104,22 @@ class OkHttpDownloader private constructor(private val client: OkHttpClient) : D
             else -> requestBuilder.get().build()
         }
 
-        val response: Response = client.newCall(httpRequest).execute()
+        client.newCall(httpRequest).execute().use { response ->
+            // OkHttp 4.x uses Kotlin property syntax instead of Java-style method calls
+            val responseHeaders = mutableMapOf<String, MutableList<String>>()
+            response.headers.names().forEach { name ->
+                responseHeaders[name] = response.headers(name).toMutableList()
+            }
 
-        // OkHttp 4.x uses Kotlin property syntax instead of Java-style method calls
-        val responseHeaders = mutableMapOf<String, MutableList<String>>()
-        response.headers.names().forEach { name ->
-            responseHeaders[name] = response.headers(name).toMutableList()
+            val body = response.body?.string() ?: ""
+            return NpResponse(
+                response.code,
+                response.message,
+                responseHeaders,
+                body,
+                response.request.url.toString()
+            )
         }
-
-        val body = response.body?.string() ?: ""
-        return NpResponse(
-            response.code,
-            response.message,
-            responseHeaders,
-            body,
-            response.request.url.toString()
-        )
     }
 }
 
@@ -105,7 +154,7 @@ class YouTubeExtractor {
             for (item in extractor.initialPage.items) {
                 try {
                     val stream = item as? org.schabi.newpipe.extractor.stream.StreamInfoItem ?: continue
-                    val videoId = extractVideoId(stream.url) ?: continue
+                    val videoId = YouTubeUrlParser.extractVideoId(stream.url) ?: continue
                     val thumbnailUrl = stream.thumbnails.lastOrNull()?.url
                         ?.let { getHighResThumbnail(it) }
 
@@ -128,6 +177,34 @@ class YouTubeExtractor {
             Log.e(TAG, "Search failed: ${e.message}", e)
         }
         songs
+    }
+
+    /**
+     * Fetch video page and return a Song metadata object.
+     */
+    suspend fun getSongMetadata(videoId: String): Song? = withContext(Dispatchers.IO) {
+        try {
+            val ytService = ServiceList.YouTube
+            val linkHandler = ytService.streamLHFactory
+                .fromUrl("https://www.youtube.com/watch?v=$videoId")
+            val extractor: StreamExtractor = ytService.getStreamExtractor(linkHandler)
+            extractor.fetchPage()
+
+            val thumbnailUrl = extractor.thumbnails.lastOrNull()?.url
+                ?.let { getHighResThumbnail(it) }
+
+            Song(
+                uri = "online:$videoId",
+                title = extractor.name ?: "Unknown Title",
+                artist = extractor.uploaderName ?: "Unknown Artist",
+                album = "YouTube Music",
+                duration = extractor.length * 1000L,
+                albumArtUri = thumbnailUrl
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "getSongMetadata failed for $videoId: ${e.message}", e)
+            null
+        }
     }
 
     /**
@@ -170,11 +247,6 @@ class YouTubeExtractor {
             null
         }
     }
-
-    private fun extractVideoId(url: String): String? = try {
-        val uri = android.net.Uri.parse(url)
-        uri.getQueryParameter("v") ?: uri.lastPathSegment?.takeIf { it.length == 11 }
-    } catch (e: Exception) { null }
 
     private fun getHighResThumbnail(url: String?): String? {
         if (url == null) return null

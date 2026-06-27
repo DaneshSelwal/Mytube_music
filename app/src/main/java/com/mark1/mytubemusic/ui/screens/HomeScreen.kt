@@ -189,7 +189,7 @@ fun SharedTransitionScope.HomeScreen(
     val duration by playerViewModel.duration.collectAsState()
     
     var selectedTabIndex by remember { mutableStateOf(0) }
-    val tabs = listOf("Songs", "Albums", "Artists", "Playlists", "Online")
+    val tabs = listOf("Songs", "Albums", "Artists", "Playlists", "Online", "Browser")
     val searchQuery by libraryViewModel.searchQuery.collectAsState()
     val filteredSongs by libraryViewModel.filteredSongs.collectAsState()
     val onlineSearchResults by libraryViewModel.onlineSearchResults.collectAsState()
@@ -260,7 +260,7 @@ fun SharedTransitionScope.HomeScreen(
                     }
                 } else {
                     // Local search only shown outside Online tab
-                    if (selectedTabIndex != 4) {
+                    if (selectedTabIndex < 4) {
                         OutlinedTextField(
                             value = searchQuery,
                             onValueChange = { libraryViewModel.updateSearchQuery(it) },
@@ -287,7 +287,9 @@ fun SharedTransitionScope.HomeScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    when (selectedTabIndex) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        if (selectedTabIndex != 5) {
+                            when (selectedTabIndex) {
                         0 -> {
                             LazyColumn(
                                 state = listState,
@@ -619,6 +621,20 @@ fun SharedTransitionScope.HomeScreen(
                                 }
                             }
                         }
+                            }
+                        }
+
+                        // Persistent WebView Browser Screen (shifted offscreen when not active)
+                        BrowserScreen(
+                            isActive = selectedTabIndex == 5,
+                            playerViewModel = playerViewModel,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .then(
+                                    if (selectedTabIndex == 5) Modifier 
+                                    else Modifier.offset(x = 10000.dp) // Offscreen to avoid destruction
+                                )
+                        )
                     }
 
                     if (showCreateLocalPlaylistDialog) {
@@ -805,7 +821,7 @@ fun SongItem(
     
     LaunchedEffect(song.uri) {
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            val fileName = "art_${song.title.hashCode()}"
+            val fileName = "art_${(song.title + "_" + song.artist).hashCode()}"
             val cachedFile = java.io.File(context.cacheDir, "$fileName.jpg")
             if (cachedFile.exists()) {
                 artBitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
@@ -1023,7 +1039,7 @@ fun AlbumArtistCard(modifier: Modifier = Modifier, title: String, subtitle: Stri
     LaunchedEffect(song?.uri) {
         if (song == null) return@LaunchedEffect
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            val fileName = "art_${song.title.hashCode()}"
+            val fileName = "art_${(song.title + "_" + song.artist).hashCode()}"
             val cachedFile = java.io.File(context.cacheDir, "$fileName.jpg")
             if (cachedFile.exists()) {
                 artBitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
