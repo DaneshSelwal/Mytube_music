@@ -13,6 +13,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.mark1.mytubemusic.data.model.Song
 import com.mark1.mytubemusic.service.MusicService
+import com.mark1.mytubemusic.repository.OnlineSongRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,11 +21,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.lifecycle.viewModelScope
 import com.mark1.mytubemusic.util.LyricLine
 import com.mark1.mytubemusic.util.LrcParser
 
 class PlayerViewModel : ViewModel() {
+
+    private val onlineRepository = OnlineSongRepository()
 
     private var controllerFuture: ListenableFuture<MediaController>? = null
     var player: MediaController? = null
@@ -190,60 +194,82 @@ class PlayerViewModel : ViewModel() {
         }
     }
 
-    fun playSong(song: Song) {
-        player?.let {
-            val extras = android.os.Bundle().apply {
-                putLong("duration", song.duration)
-                song.albumArtUri?.let { art -> putString("albumArtUri", art) }
-            }
-            val artworkUri = song.albumArtUri?.let { art -> android.net.Uri.parse(art) }
-                ?: android.net.Uri.parse(song.uri)
-            val metadata = MediaMetadata.Builder()
-                .setTitle(song.title)
-                .setArtist(song.artist)
-                .setAlbumTitle(song.album)
-                .setArtworkUri(artworkUri)
-                .setExtras(extras)
-                .build()
-                
-            val mediaItem = MediaItem.Builder()
-                .setMediaId(song.uri)
-                .setUri(song.uri)
-                .setMediaMetadata(metadata)
-                .build()
-                
-            it.setMediaItem(mediaItem)
-            it.prepare()
-            it.play()
+    /**
+     * Build a MediaItem for the given song.
+     * For online songs (uri starts with "online:"), resolves the real stream URL
+     * asynchronously before passing to ExoPlayer.
+     * The mediaId always stays as the original song.uri so identity tracking works.
+     */
+    private suspend fun buildMediaItem(song: Song): MediaItem? {
+        val extras = android.os.Bundle().apply {
+            putLong("duration", song.duration)
+            song.albumArtUri?.let { art -> putString("albumArtUri", art) }
         }
-    }
-    
-    fun playQueue(songs: List<Song>, startIndex: Int = 0) {
-        player?.let { p ->
-            val mediaItems = songs.map { song ->
-                val extras = android.os.Bundle().apply {
-                    putLong("duration", song.duration)
-                    song.albumArtUri?.let { art -> putString("albumArtUri", art) }
-                }
-                val artworkUri = song.albumArtUri?.let { art -> android.net.Uri.parse(art) }
-                    ?: android.net.Uri.parse(song.uri)
-                val metadata = MediaMetadata.Builder()
-                    .setTitle(song.title)
-                    .setArtist(song.artist)
-                    .setAlbumTitle(song.album)
-                    .setArtworkUri(artworkUri)
-                    .setExtras(extras)
-                    .build()
-                    
-                MediaItem.Builder()
-                    .setMediaId(song.uri)
-                    .setUri(song.uri)
-                    .setMediaMetadata(metadata)
-                    .build()
+        val artworkUri = song.albumArtUri?.let { art -> android.net.Uri.parse(art) }
+        val metadata = MediaMetadata.Builder()
+            .setTitle(song.title)
+            .setArtist(song.artist)
+            .setAlbumTitle(song.album)
+            .apply { artworkUri?.let { setArtworkUri(it) } }
+            .setExtras(extras)
+            .build()
+
+        // Resolve online URI to real HTTPS stream URL before ExoPlayer touches it
+        val playbackUri: android.net.Uri = if (song.uri.startsWith("online:")) {
+            val videoId = song.uri.removePrefix("online:")
+            val streamUrl = withContext(Dispatchers.IO) {
+                onlineRepository.getStreamUrl(videoId)
             }
-            p.setMediaItems(mediaItems, startIndex, C.TIME_UNSET)
+            if (streamUrl == null) return null  // stream resolution failed
+            android.net.Uri.parse(streamUrl)
+        } else {
+            android.net.Uri.parse(song.uri)
+        }
+
+        return MediaItem.Builder()
+            .setMediaId(song.uri)          // keep original URI as stable ID
+            .setUri(playbackUri)           // real playback URL
+            .setMediaMetadata(metadata)
+            .build()
+    }
+
+    fun playSong(song: Song) {
+        val p = player ?: return
+        viewModelScope.launch {
+            val mediaItem = buildMediaItem(song) ?: return@launch
+            p.setMediaItem(mediaItem)
             p.prepare()
             p.play()
+        }
+    }
+
+    fun playQueue(songs: List<Song>, startIndex: Int = 0) {
+        val p = player ?: return
+        viewModelScope.launch {
+            // Show the first song immediately, resolve rest in background
+            val firstSong = songs.getOrNull(startIndex)
+            val firstItem = firstSong?.let { buildMediaItem(it) }
+
+            if (firstItem != null) {
+                p.setMediaItem(firstItem)
+                p.prepare()
+                p.play()
+            }
+
+            // Resolve remaining songs and add them to the queue
+            val remaining = songs.mapIndexedNotNull { index, song ->
+                if (index == startIndex) null else buildMediaItem(song)
+            }
+            if (remaining.isNotEmpty()) {
+                // Insert before/after the current item to maintain order
+                val itemsBefore = songs.subList(0, startIndex).mapNotNull { buildMediaItem(it) }
+                val itemsAfter = songs.subList(
+                    minOf(startIndex + 1, songs.size), songs.size
+                ).mapNotNull { buildMediaItem(it) }
+
+                if (itemsBefore.isNotEmpty()) p.addMediaItems(0, itemsBefore)
+                if (itemsAfter.isNotEmpty()) p.addMediaItems(p.mediaItemCount, itemsAfter)
+            }
         }
     }
 
