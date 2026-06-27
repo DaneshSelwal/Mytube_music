@@ -181,74 +181,115 @@ class YouTubeExtractor {
     }
 
     /**
-     * Fetch direct unencrypted streaming URLs using the InnerTube /player API.
-     * Setting the client to ANDROID_MUSIC or ANDROID avoids signature encryption ciphers,
-     * returning the stream URL directly.
+     * Fetch direct streaming URLs using the InnerTube /player API.
+     * Tries multiple clients — YouTube frequently blocks specific clients from
+     * returning direct (non-ciphered) stream URLs.
      */
     suspend fun getStreamUrl(videoId: String): String? = withContext(Dispatchers.IO) {
-        val url = "https://www.youtube.com/youtubei/v1/player?key=$innerTubeApiKey"
+        // Ordered by current reliability for returning direct (non-ciphered) URLs
+        data class ClientConfig(val name: String, val version: String, val userAgent: String, val clientId: String)
+        val clients = listOf(
+            ClientConfig("IOS", "19.29.1",
+                "com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X; en_US)", "5"),
+            ClientConfig("ANDROID", "19.29.34",
+                "com.google.android.youtube/19.29.34 (Linux; U; Android 14; en_US) gzip", "3"),
+            ClientConfig("ANDROID_MUSIC", "7.27.52",
+                "com.google.android.youtube.music/7.27.52 (Linux; U; Android 14; en_US) gzip", "21")
+        )
 
+        for (cfg in clients) {
+            val result = tryFetchStreamUrl(videoId, cfg.name, cfg.version, cfg.userAgent, cfg.clientId)
+            if (result != null) {
+                android.util.Log.d("YouTubeExtractor", "[${cfg.name}] Resolved stream for $videoId")
+                return@withContext result
+            }
+            android.util.Log.w("YouTubeExtractor", "[${cfg.name}] No direct URL, trying next client")
+        }
+        android.util.Log.e("YouTubeExtractor", "All clients failed for videoId=$videoId")
+        null
+    }
+
+    private fun tryFetchStreamUrl(
+        videoId: String, clientName: String, clientVersion: String,
+        userAgent: String, clientId: String
+    ): String? {
+        val url = "https://www.youtube.com/youtubei/v1/player"
         val payload = JSONObject().apply {
             put("videoId", videoId)
             put("context", JSONObject().apply {
                 put("client", JSONObject().apply {
-                    put("clientName", "ANDROID_MUSIC")
-                    put("clientVersion", "6.05.51")
+                    put("clientName", clientName)
+                    put("clientVersion", clientVersion)
                     put("hl", "en")
                     put("gl", "US")
                 })
             })
-            // signatureTimestamp is sometimes helpful to match client signature cycles
             put("playbackContext", JSONObject().apply {
                 put("contentPlaybackContext", JSONObject().apply {
-                    put("signatureTimestamp", 19500)
+                    put("signatureTimestamp", 19950)
                 })
             })
+            put("contentCheckOk", true)
+            put("racyCheckOk", true)
         }
-
         val requestBody = payload.toString().toRequestBody(jsonMediaType)
         val request = Request.Builder()
             .url(url)
             .post(requestBody)
-            .addHeader("User-Agent", "com.google.android.youtube.music/6.05.51 (Linux; U; Android 14; en_US)")
-            .addHeader("X-Goog-Api-Format-Version", "2")
+            .addHeader("User-Agent", userAgent)
+            .addHeader("Content-Type", "application/json")
+            .addHeader("X-Youtube-Client-Name", clientId)
+            .addHeader("X-Youtube-Client-Version", clientVersion)
             .build()
 
-        try {
+        return try {
             client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@use null
+                if (!response.isSuccessful) {
+                    android.util.Log.w("YouTubeExtractor", "HTTP ${response.code} from $clientName")
+                    return null
+                }
+                val body = response.body?.string() ?: return null
+                val root = JSONObject(body)
 
-                val responseBody = response.body?.string() ?: return@use null
-                val root = JSONObject(responseBody)
-                val streamingData = root.optJSONObject("streamingData") ?: return@use null
-                val adaptiveFormats = streamingData.optJSONArray("adaptiveFormats") ?: return@use null
+                // Check playability
+                val status = root.optJSONObject("playabilityStatus")?.optString("status") ?: ""
+                if (status == "UNPLAYABLE" || status == "LOGIN_REQUIRED" || status == "ERROR") {
+                    android.util.Log.w("YouTubeExtractor", "$clientName: status=$status")
+                    return null
+                }
 
+                val streamingData = root.optJSONObject("streamingData") ?: return null
                 var bestUrl: String? = null
                 var bestBitrate = 0
 
-                // Scan through adaptive streams (which contain isolated audio formats like M4A or WebM)
-                for (i in 0 until adaptiveFormats.length()) {
-                    val format = adaptiveFormats.optJSONObject(i) ?: continue
-                    val mimeType = format.optString("mimeType") ?: ""
-                    
-                    // We only want audio streams (preferably MP4/M4A, which are natively supported)
-                    if (mimeType.startsWith("audio/")) {
-                        val streamUrl = format.optString("url")
-                        if (!streamUrl.isNullOrEmpty()) {
-                            val bitrate = format.optInt("bitrate")
-                            if (bitrate > bestBitrate) {
-                                bestBitrate = bitrate
-                                bestUrl = streamUrl
-                            }
+                // Check both adaptiveFormats (audio-only) and formats (muxed)
+                listOfNotNull(
+                    streamingData.optJSONArray("adaptiveFormats"),
+                    streamingData.optJSONArray("formats")
+                ).forEach { arr ->
+                    for (i in 0 until arr.length()) {
+                        val fmt = arr.optJSONObject(i) ?: continue
+                        val mime = fmt.optString("mimeType", "")
+                        if (!mime.startsWith("audio/")) continue
+
+                        val directUrl = fmt.optString("url", "")
+                        if (directUrl.isEmpty()) continue  // skip signature-ciphered
+
+                        val bitrate = fmt.optInt("bitrate", 0)
+                        // Boost AAC/mp4a priority — best Android ExoPlayer compat
+                        val adjusted = if (mime.contains("mp4a")) bitrate + 1_000_000 else bitrate
+                        if (adjusted > bestBitrate) {
+                            bestBitrate = adjusted
+                            bestUrl = directUrl
                         }
                     }
                 }
-                return@withContext bestUrl
+                bestUrl
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("YouTubeExtractor", "$clientName exception: ${e.message}")
+            null
         }
-        return@withContext null
     }
 
     private fun parseDuration(durationStr: String): Long {
@@ -270,3 +311,4 @@ class YouTubeExtractor {
         }
     }
 }
+

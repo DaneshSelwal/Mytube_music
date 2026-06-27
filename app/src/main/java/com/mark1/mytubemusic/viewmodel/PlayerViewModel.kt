@@ -235,8 +235,15 @@ class PlayerViewModel : ViewModel() {
 
     fun playSong(song: Song) {
         val p = player ?: return
+        // Show song in player immediately — before URL resolution — for instant feedback
+        _currentSong.value = song
         viewModelScope.launch {
-            val mediaItem = buildMediaItem(song) ?: return@launch
+            val mediaItem = buildMediaItem(song)
+            if (mediaItem == null) {
+                android.util.Log.e("PlayerViewModel", "Failed to resolve stream for ${song.title}")
+                _currentSong.value = null
+                return@launch
+            }
             p.setMediaItem(mediaItem)
             p.prepare()
             p.play()
@@ -245,30 +252,26 @@ class PlayerViewModel : ViewModel() {
 
     fun playQueue(songs: List<Song>, startIndex: Int = 0) {
         val p = player ?: return
+        val clickedSong = songs.getOrNull(startIndex) ?: return
+        // Show tapped song immediately in the player for instant UI feedback
+        _currentSong.value = clickedSong
         viewModelScope.launch {
-            // Show the first song immediately, resolve rest in background
-            val firstSong = songs.getOrNull(startIndex)
-            val firstItem = firstSong?.let { buildMediaItem(it) }
-
-            if (firstItem != null) {
-                p.setMediaItem(firstItem)
-                p.prepare()
-                p.play()
+            // Step 1: Resolve and play just the tapped song first
+            val firstItem = buildMediaItem(clickedSong)
+            if (firstItem == null) {
+                android.util.Log.e("PlayerViewModel", "Failed to resolve stream for ${clickedSong.title}")
+                _currentSong.value = null
+                return@launch
             }
+            p.setMediaItem(firstItem)
+            p.prepare()
+            p.play()
 
-            // Resolve remaining songs and add them to the queue
-            val remaining = songs.mapIndexedNotNull { index, song ->
-                if (index == startIndex) null else buildMediaItem(song)
-            }
-            if (remaining.isNotEmpty()) {
-                // Insert before/after the current item to maintain order
-                val itemsBefore = songs.subList(0, startIndex).mapNotNull { buildMediaItem(it) }
-                val itemsAfter = songs.subList(
-                    minOf(startIndex + 1, songs.size), songs.size
-                ).mapNotNull { buildMediaItem(it) }
-
-                if (itemsBefore.isNotEmpty()) p.addMediaItems(0, itemsBefore)
-                if (itemsAfter.isNotEmpty()) p.addMediaItems(p.mediaItemCount, itemsAfter)
+            // Step 2: Lazily resolve the rest of the queue one-by-one in background
+            val remaining = songs.filterIndexed { i, _ -> i != startIndex }
+            for (song in remaining) {
+                val item = buildMediaItem(song) ?: continue
+                p.addMediaItem(item)
             }
         }
     }
