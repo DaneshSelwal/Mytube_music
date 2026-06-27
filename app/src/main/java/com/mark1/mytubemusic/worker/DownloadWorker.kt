@@ -26,9 +26,9 @@ class DownloadWorker(
         val artist = inputData.getString("artist") ?: "Unknown Artist"
         
         // Sanitize filenames
-        val safeTitle = title.replace(Regex("[\/:*?\"<>|]"), "")
-        val safeArtist = artist.replace(Regex("[\/:*?\"<>|]"), "")
-        val fileName = "$safeArtist - $safeTitle.m4a"
+        val safeTitle = title.replace(Regex("[/:*?\"<>|]"), "")
+        val safeArtist = artist.replace(Regex("[/:*?\"<>|]"), "")
+        val fileName = "$safeTitle - $safeArtist.m4a"
 
         val repo = OnlineSongRepository()
         val streamUrl = repo.getStreamUrl(videoId) ?: return@withContext Result.failure()
@@ -67,6 +67,38 @@ class DownloadWorker(
                     resolver.update(uri, contentValues, null, null)
                 }
             }
+
+            val albumArtUri = inputData.getString("albumArtUri")
+            var artDownloaded = false
+
+            if (!albumArtUri.isNullOrEmpty()) {
+                try {
+                    val artRequest = Request.Builder().url(albumArtUri).build()
+                    client.newCall(artRequest).execute().use { artResponse ->
+                        if (artResponse.isSuccessful) {
+                            val artBody = artResponse.body
+                            if (artBody != null) {
+                                val cacheFile = File(applicationContext.cacheDir, "art_${title.hashCode()}.jpg")
+                                cacheFile.outputStream().use { outputStream ->
+                                    artBody.byteStream().copyTo(outputStream)
+                                }
+                                artDownloaded = true
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            if (!artDownloaded) {
+                com.mark1.mytubemusic.util.ArtworkScraper.fetchAndSaveAlbumArt(
+                    "$title $artist",
+                    applicationContext.cacheDir,
+                    "art_${title.hashCode()}"
+                )
+            }
+
             return@withContext Result.success()
         } catch (e: Exception) {
             e.printStackTrace()

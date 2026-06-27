@@ -16,6 +16,7 @@ class ShakeDetector(
     private val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
     
     private var lastTime: Long = 0
+    private var lastShakeTime: Long = 0
     private var lastX: Float = 0f
     private var lastY: Float = 0f
     private var lastZ: Float = 0f
@@ -49,7 +50,10 @@ class ShakeDetector(
                 val speed = Math.abs(x + y + z - lastX - lastY - lastZ) / diffTime * 10000
 
                 if (speed > SHAKE_THRESHOLD) {
-                    onShake()
+                    if (currentTime - lastShakeTime > TIME_THRESHOLD) {
+                        onShake()
+                        lastShakeTime = currentTime
+                    }
                 }
 
                 lastTime = currentTime

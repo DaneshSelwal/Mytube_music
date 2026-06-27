@@ -212,6 +212,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                         animatedVisibilityScope = animatedVisibilityScope,
                         isPlaying = isPlaying,
                         artBitmap = artBitmap,
+                        albumArtUri = currentSong?.albumArtUri,
                         modifier = Modifier
                             .fillMaxWidth(if (isLandscape) 0.7f else 0.85f)
                             .aspectRatio(1f)
@@ -557,6 +558,7 @@ fun SharedTransitionScope.SpinningCDAnimation(
     animatedVisibilityScope: AnimatedVisibilityScope,
     isPlaying: Boolean,
     artBitmap: ImageBitmap?,
+    albumArtUri: String?,
     modifier: Modifier = Modifier
 ) {
     var currentRotation by remember { mutableFloatStateOf(0f) }
@@ -627,6 +629,13 @@ fun SharedTransitionScope.SpinningCDAnimation(
             if (artBitmap != null) {
                 Image(
                     bitmap = artBitmap,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else if (albumArtUri != null) {
+                coil.compose.AsyncImage(
+                    model = albumArtUri,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()

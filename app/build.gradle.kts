@@ -106,4 +106,8 @@ dependencies {
     // DataStore (settings/preferences)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.reorderable)
+
+    // Local Unit Testing Dependencies
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20231013")
 }

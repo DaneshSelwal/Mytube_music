@@ -28,6 +28,7 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import com.mark1.mytubemusic.data.db.AppDatabase
 import com.mark1.mytubemusic.repository.SongRepository
+import com.mark1.mytubemusic.repository.OnlinePlaylistRepository
 import com.mark1.mytubemusic.ui.screens.HomeScreen
 import com.mark1.mytubemusic.ui.screens.NowPlayingScreen
 import com.mark1.mytubemusic.ui.screens.OnboardingScreen
@@ -36,6 +37,8 @@ import com.mark1.mytubemusic.ui.theme.MyTubeMusicTheme
 import com.mark1.mytubemusic.viewmodel.LibraryViewModel
 import com.mark1.mytubemusic.viewmodel.PlayerViewModel
 import com.mark1.mytubemusic.util.ShakeDetector
+
+import com.mark1.mytubemusic.repository.PlaylistRepository
 
 class MainActivity : ComponentActivity() {
     private var shakeDetector: ShakeDetector? = null
@@ -50,11 +53,13 @@ class MainActivity : ComponentActivity() {
         ).fallbackToDestructiveMigration()
          .build()
         val repository = SongRepository(database.songDao())
+        val onlinePlaylistRepository = OnlinePlaylistRepository(database.onlinePlaylistDao())
+        val playlistRepository = PlaylistRepository(database.playlistDao())
         
         val libraryViewModel = ViewModelProvider(this, object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return LibraryViewModel(repository) as T
+                return LibraryViewModel(repository, onlinePlaylistRepository, playlistRepository) as T
             }
         })[LibraryViewModel::class.java]
 
@@ -143,7 +148,10 @@ fun AppNavHost(libraryViewModel: LibraryViewModel, playerViewModel: PlayerViewMo
                     animatedVisibilityScope = this@composable,
                     libraryViewModel = libraryViewModel,
                     playerViewModel = playerViewModel,
-                    onBack = { navController.popBackStack() },
+                    onBack = {
+                        libraryViewModel.clearPlaylistDetail()
+                        navController.popBackStack()
+                    },
                     onNavigateToNowPlaying = { navController.navigate("now_playing") }
                 )
             }

@@ -46,9 +46,17 @@ fun SharedTransitionScope.DetailScreen(
     val isPlaying by playerViewModel.isPlaying.collectAsState()
     val progress by playerViewModel.progress.collectAsState()
     val duration by playerViewModel.duration.collectAsState()
+    val selectedDetailPlaylistId by libraryViewModel.selectedDetailPlaylistId.collectAsState()
+    val selectedDetailPlaylistType by libraryViewModel.selectedDetailPlaylistType.collectAsState()
 
     val context = androidx.compose.ui.platform.LocalContext.current
     var artBitmap by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            libraryViewModel.clearPlaylistDetail()
+        }
+    }
     
     androidx.compose.runtime.LaunchedEffect(songs.firstOrNull()?.uri) {
         val song = songs.firstOrNull() ?: return@LaunchedEffect
@@ -112,21 +120,37 @@ fun SharedTransitionScope.DetailScreen(
             Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = if (currentSong != null) 180.dp else 16.dp)
+                    contentPadding = PaddingValues(bottom = if (currentSong != null) 96.dp else 16.dp)
                 ) {
-                itemsIndexed(songs) { index, song ->
-                    val isCurrent = currentSong?.uri == song.uri
-                    SongItem(song = song, isCurrent = isCurrent, onClick = {
-                        playerViewModel.playQueue(songs, index)
-                    })
+                    itemsIndexed(songs) { index, song ->
+                        val isCurrent = currentSong?.uri == song.uri
+                        SongItem(
+                            song = song,
+                            isCurrent = isCurrent,
+                            onRemoveClick = if (selectedDetailPlaylistId != null && selectedDetailPlaylistType != null) {
+                                {
+                                    val playlistId = selectedDetailPlaylistId!!
+                                    val playlistType = selectedDetailPlaylistType!!
+                                    if (playlistType == "local") {
+                                        libraryViewModel.removeSongFromLocalPlaylist(playlistId, song.uri)
+                                    } else if (playlistType == "online") {
+                                        libraryViewModel.removeSongFromOnlinePlaylist(playlistId, song.uri)
+                                    }
+                                }
+                            } else null,
+                            onClick = {
+                                playerViewModel.playQueue(songs, index)
+                            }
+                        )
+                    }
                 }
-            }
 
             if (currentSong != null) {
                 Box(
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(bottom = 24.dp, end = 24.dp)
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
                 ) {
                     MiniPlayer(
                         animatedVisibilityScope = animatedVisibilityScope,
