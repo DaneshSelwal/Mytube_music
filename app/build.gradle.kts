@@ -56,6 +56,9 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/DEPENDENCIES"
+            excludes += "/META-INF/LICENSE*"
+            excludes += "/META-INF/NOTICE*"
         }
     }
 }
@@ -110,4 +113,9 @@ dependencies {
     // Local Unit Testing Dependencies
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20231013")
+
+    // NewPipe Extractor — reliable YouTube/YouTube Music stream extraction
+    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.24.2") {
+        exclude(group = "org.mozilla", module = "rhino")
+    }
 }
