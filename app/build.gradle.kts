@@ -23,6 +23,8 @@ android {
         ndk {
             abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
         }
+        
+        manifestPlaceholders["appAuthRedirectScheme"] = "mytubemusic"
     }
 
     signingConfigs {
@@ -121,4 +123,7 @@ dependencies {
     // DataStore (settings/preferences)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.reorderable)
+
+    // OAuth
+    implementation(libs.appauth)
 }
