@@ -176,4 +176,36 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
             }
         }
     }
+
+    private val _onlineSearchResults = MutableStateFlow<List<Song>>(emptyList())
+    val onlineSearchResults: StateFlow<List<Song>> = _onlineSearchResults.asStateFlow()
+    
+    private val _isSearchingOnline = MutableStateFlow(false)
+    val isSearchingOnline: StateFlow<Boolean> = _isSearchingOnline.asStateFlow()
+
+    fun searchOnline(query: String) {
+        if (query.isBlank()) {
+            _onlineSearchResults.value = emptyList()
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            _isSearchingOnline.value = true
+            // Mock online delay to simulate network request
+            kotlinx.coroutines.delay(1000)
+            
+            val mockResults = listOf(
+                Song("yt_mock:${query.hashCode()}_1", "$query (Official Audio)", "Various Artists", "Single", 210000, downloadState = "PENDING"),
+                Song("yt_mock:${query.hashCode()}_2", "$query (Live Performance)", "Various Artists", "Live", 230000, downloadState = "PENDING"),
+                Song("yt_mock:${query.hashCode()}_3", "$query (Cover)", "Cover Artist", "Single", 195000, downloadState = "PENDING")
+            )
+            _onlineSearchResults.value = mockResults
+            _isSearchingOnline.value = false
+        }
+    }
+
+    fun downloadSong(song: Song) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertSongs(listOf(song))
+        }
+    }
 }

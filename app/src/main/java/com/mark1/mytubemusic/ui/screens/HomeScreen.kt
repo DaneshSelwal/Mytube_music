@@ -180,11 +180,13 @@ fun SharedTransitionScope.HomeScreen(
     val duration by playerViewModel.duration.collectAsState()
     
     var selectedTabIndex by remember { mutableStateOf(0) }
-    val tabs = listOf("Songs", "Albums", "Artists")
+    val tabs = listOf("Songs", "Albums", "Artists", "Search Online")
     val searchQuery by libraryViewModel.searchQuery.collectAsState()
     val filteredSongs by libraryViewModel.filteredSongs.collectAsState()
     val albums by libraryViewModel.albums.collectAsState()
     val artists by libraryViewModel.artists.collectAsState()
+    val onlineSearchResults by libraryViewModel.onlineSearchResults.collectAsState()
+    val isSearchingOnline by libraryViewModel.isSearchingOnline.collectAsState()
 
     val haptic = LocalHapticFeedback.current
     val backgroundBrush = Brush.verticalGradient(
@@ -239,7 +241,12 @@ fun SharedTransitionScope.HomeScreen(
                 } else {
                     OutlinedTextField(
                         value = searchQuery,
-                        onValueChange = { libraryViewModel.updateSearchQuery(it) },
+                        onValueChange = { 
+                            libraryViewModel.updateSearchQuery(it)
+                            if (selectedTabIndex == 3) {
+                                libraryViewModel.searchOnline(it)
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                         placeholder = { Text("Search songs or artists...", color = Tokens.textSecondary) },
                         singleLine = true,
@@ -306,6 +313,31 @@ fun SharedTransitionScope.HomeScreen(
                                     AlbumArtistCard(modifier = Modifier.animateItem(), title = artist, subtitle = "$albumCount Album(s)", song = artistSongs.firstOrNull(), badge = "Artist") {
                                         libraryViewModel.selectDetail(artist, artistSongs)
                                         onNavigateToDetail()
+                                    }
+                                }
+                            }
+                        }
+                        3 -> { // Search Online
+                            if (isSearchingOnline) {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(color = Tokens.accentPrimary)
+                                }
+                            } else if (onlineSearchResults.isEmpty() && searchQuery.isNotEmpty()) {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text("No results found on YouTube.", color = Tokens.textSecondary)
+                                }
+                            } else {
+                                LazyColumn(
+                                    state = listState,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(bottom = if (currentSong != null) 180.dp else 16.dp)
+                                ) {
+                                    item { SectionHeader("ONLINE RESULTS (${onlineSearchResults.size})") }
+                                    itemsIndexed(onlineSearchResults) { index, song ->
+                                        SongItem(song = song, isCurrent = false, modifier = Modifier.animateItem(), onClick = {
+                                            libraryViewModel.downloadSong(song)
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        })
                                     }
                                 }
                             }
