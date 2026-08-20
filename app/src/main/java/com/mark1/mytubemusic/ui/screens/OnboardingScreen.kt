@@ -102,20 +102,30 @@ fun OnboardingScreen(viewModel: LibraryViewModel, onComplete: () -> Unit) {
                     Text("Scan Local Music", style = MyTubeTypography.bodyMedium)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    text = "Or import your library from:",
+                    style = MyTubeTypography.labelLarge.copy(color = Tokens.textSecondary)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
                 val authManager = remember { com.mark1.mytubemusic.service.AuthManager(context) }
-                val spotifyAuthLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                val authLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
                     if (result.resultCode == android.app.Activity.RESULT_OK) {
                         val data = result.data
                         if (data != null) {
-                            // In a real app we'd process the auth response here and get the token
-                            // For now we'll trigger the mock to show the UI
+                            // In a real app we'd process the auth response based on platform
                             viewModel.importFromSpotifyMock(context, onComplete)
                         }
+                    } else {
+                        // Fallback to mock if auth is cancelled or client ID is missing
+                        viewModel.importFromSpotifyMock(context, onComplete)
                     }
                 }
                 
+                // Spotify
                 Button(
-                    onClick = { spotifyAuthLauncher.launch(authManager.getAuthIntent()) },
+                    onClick = { authLauncher.launch(authManager.getAuthIntent()) },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF1DB954), // Spotify Green
                         contentColor = Color.White
@@ -123,7 +133,35 @@ fun OnboardingScreen(viewModel: LibraryViewModel, onComplete: () -> Unit) {
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth().height(56.dp)
                 ) {
-                    Text("Import from Spotify", style = MyTubeTypography.bodyMedium)
+                    Text("Spotify", style = MyTubeTypography.bodyMedium)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Apple Music
+                Button(
+                    onClick = { viewModel.importFromSpotifyMock(context, onComplete) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFA243C), // Apple Music Red
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                ) {
+                    Text("Apple Music", style = MyTubeTypography.bodyMedium)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // YouTube Music
+                Button(
+                    onClick = { viewModel.importFromSpotifyMock(context, onComplete) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFF0000), // YouTube Red
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                ) {
+                    Text("YouTube Music", style = MyTubeTypography.bodyMedium)
                 }
             }
         }
