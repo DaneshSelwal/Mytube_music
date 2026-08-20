@@ -152,4 +152,28 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
             }
         }
     }
+
+    fun importFromSpotifyMock(onComplete: () -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _isScanning.value = true
+            _scanProgress.value = "Connecting to Spotify..."
+            
+            kotlinx.coroutines.delay(1500)
+            _scanProgress.value = "Fetching liked songs..."
+            kotlinx.coroutines.delay(1000)
+
+            val mockSongs = listOf(
+                Song("spotify:track:1", "Blinding Lights", "The Weeknd", "After Hours", 200000, downloadState = "PENDING"),
+                Song("spotify:track:2", "Shape of You", "Ed Sheeran", "Divide", 233000, downloadState = "PENDING"),
+                Song("spotify:track:3", "Starboy", "The Weeknd", "Starboy", 230000, downloadState = "PENDING")
+            )
+            
+            repository.insertSongs(mockSongs)
+            
+            withContext(Dispatchers.Main) {
+                _isScanning.value = false
+                onComplete()
+            }
+        }
+    }
 }

@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
+    id("com.chaquo.python")
 }
 
 android {
@@ -17,6 +18,10 @@ android {
 
         vectorDrawables {
             useSupportLibrary = true
+        }
+        
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
         }
     }
 
@@ -56,6 +61,16 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+}
+
+chaquopy {
+    defaultConfig {
+        version = "3.8" // stable version
+        buildPython("/opt/homebrew/bin/python3") // might need to be resolved correctly on build machine
+        pip {
+            install("yt-dlp")
         }
     }
 }

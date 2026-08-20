@@ -93,13 +93,25 @@ fun OnboardingScreen(viewModel: LibraryViewModel, onComplete: () -> Unit) {
                 Button(
                     onClick = { launcher.launch(permissionToRequest) },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Tokens.accentPrimary,
-                        contentColor = Tokens.bgDeep
+                        containerColor = Tokens.bgElevated,
+                        contentColor = Tokens.textPrimary
                     ),
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth().height(56.dp)
                 ) {
-                    Text("Grant Permission & Scan", style = MyTubeTypography.bodyMedium)
+                    Text("Scan Local Music", style = MyTubeTypography.bodyMedium)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { viewModel.importFromSpotifyMock(onComplete) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF1DB954), // Spotify Green
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                ) {
+                    Text("Import from Spotify", style = MyTubeTypography.bodyMedium)
                 }
             }
         }

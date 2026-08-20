@@ -273,7 +273,9 @@ fun SharedTransitionScope.HomeScreen(
                                 itemsIndexed(filteredSongs) { index, song ->
                                     val isCurrent = currentSong?.uri == song.uri
                                     SongItem(song = song, isCurrent = isCurrent, modifier = Modifier.animateItem(), onClick = {
-                                        playerViewModel.playQueue(filteredSongs, index)
+                                        if (song.downloadState == "DOWNLOADED") {
+                                            playerViewModel.playQueue(filteredSongs.filter { it.downloadState == "DOWNLOADED" }, filteredSongs.filter { it.downloadState == "DOWNLOADED" }.indexOf(song))
+                                        }
                                     })
                                 }
                             }
@@ -446,10 +448,17 @@ fun SongItem(modifier: Modifier = Modifier, song: Song, isCurrent: Boolean, onCl
         }
         
         fun Long.toFormatTime(): String = String.format("%02d:%02d", this / 1000 / 60, (this / 1000) % 60)
-        Text(
-            song.duration.toFormatTime(),
-            style = MyTubeTypography.labelSmall.copy(color = Tokens.textDisabled, fontSize = 11.sp)
-        )
+        if (song.downloadState == "DOWNLOADED") {
+            Text(
+                song.duration.toFormatTime(),
+                style = MyTubeTypography.labelSmall.copy(color = Tokens.textDisabled, fontSize = 11.sp)
+            )
+        } else {
+            Text(
+                song.downloadState,
+                style = MyTubeTypography.labelSmall.copy(color = Tokens.accentPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            )
+        }
     }
 }
 
