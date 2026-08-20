@@ -20,4 +20,13 @@ interface SongDao {
     
     @Query("UPDATE songs SET isFavorite = :isFavorite WHERE uri = :uri")
     suspend fun updateFavorite(uri: String, isFavorite: Boolean)
+
+    @Query("SELECT * FROM songs WHERE downloadState = 'PENDING'")
+    suspend fun getPendingSongs(): List<Song>
+
+    @Query("UPDATE songs SET downloadState = :state WHERE uri = :uri")
+    suspend fun updateDownloadState(uri: String, state: String)
+
+    @Query("UPDATE songs SET downloadState = 'DOWNLOADED', uri = :newUri WHERE uri = :oldUri")
+    suspend fun completeDownload(oldUri: String, newUri: String)
 }

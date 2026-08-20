@@ -153,7 +153,7 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
         }
     }
 
-    fun importFromSpotifyMock(onComplete: () -> Unit) {
+    fun importFromSpotifyMock(context: Context, onComplete: () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             _isScanning.value = true
             _scanProgress.value = "Connecting to Spotify..."
@@ -169,6 +169,9 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
             )
             
             repository.insertSongs(mockSongs)
+            
+            val request = androidx.work.OneTimeWorkRequestBuilder<com.mark1.mytubemusic.service.DownloadWorker>().build()
+            androidx.work.WorkManager.getInstance(context).enqueue(request)
             
             withContext(Dispatchers.Main) {
                 _isScanning.value = false
@@ -203,9 +206,11 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
         }
     }
 
-    fun downloadSong(song: Song) {
+    fun downloadSong(song: Song, context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.insertSongs(listOf(song))
+            val request = androidx.work.OneTimeWorkRequestBuilder<com.mark1.mytubemusic.service.DownloadWorker>().build()
+            androidx.work.WorkManager.getInstance(context).enqueue(request)
         }
     }
 }

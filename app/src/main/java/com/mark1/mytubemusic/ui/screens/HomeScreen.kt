@@ -335,7 +335,8 @@ fun SharedTransitionScope.HomeScreen(
                                     item { SectionHeader("ONLINE RESULTS (${onlineSearchResults.size})") }
                                     itemsIndexed(onlineSearchResults) { index, song ->
                                         SongItem(song = song, isCurrent = false, modifier = Modifier.animateItem(), onClick = {
-                                            libraryViewModel.downloadSong(song)
+                                            val currentContext = context
+                                            libraryViewModel.downloadSong(song, currentContext)
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         })
                                     }

@@ -34,22 +34,49 @@ class DownloadWorker(
             ).fallbackToDestructiveMigration().build()
             
             val songDao = database.songDao()
-            // In a real app we would have a getPendingSongs() method.
-            // For now, let's just create a Python downloader function.
+            val pendingSongs = songDao.getPendingSongs().take(10) // Limit to 10 per run
             
-            // Example Python snippet to download a song:
-            // def download_song(url, output_path):
-            //     import yt_dlp
-            //     ydl_opts = {'format': 'bestaudio/best', 'outtmpl': output_path, 'postprocessors': [{'key': 'FFmpegExtractAudio','preferredcodec': 'mp3'}]}
-            //     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            //         ydl.download([url])
+            if (pendingSongs.isEmpty()) {
+                return@withContext Result.success()
+            }
+
+            val musicDir = File(applicationContext.getExternalFilesDir(android.os.Environment.DIRECTORY_MUSIC), "MyTubeDownloads")
+            if (!musicDir.exists()) {
+                musicDir.mkdirs()
+            }
+
+            val downloaderModule = py.getModule("downloader")
             
-            // We can add a python script in src/main/python/downloader.py and call it here.
+            for (song in pendingSongs) {
+                songDao.updateDownloadState(song.uri, "DOWNLOADING")
+                
+                try {
+                    val query = "${song.title} ${song.artist}"
+                    // Calls the python download_song function
+                    val success = downloaderModule.callAttr("download_song", query, musicDir.absolutePath).toBoolean()
+                    
+                    if (success) {
+                        // Find the downloaded file
+                        val downloadedFile = musicDir.listFiles()?.find { it.name.contains(song.title) && it.extension == "mp3" }
+                        if (downloadedFile != null) {
+                            songDao.completeDownload(song.uri, downloadedFile.absolutePath)
+                        } else {
+                            // Couldn't find the file, revert to pending
+                            songDao.updateDownloadState(song.uri, "PENDING")
+                        }
+                    } else {
+                        songDao.updateDownloadState(song.uri, "PENDING")
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    songDao.updateDownloadState(song.uri, "PENDING")
+                }
+            }
 
             Result.success()
         } catch (e: Exception) {
             e.printStackTrace()
-            Result.failure()
+            Result.retry()
         }
     }
 }

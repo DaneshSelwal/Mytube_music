@@ -103,7 +103,7 @@ fun OnboardingScreen(viewModel: LibraryViewModel, onComplete: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
-                    onClick = { viewModel.importFromSpotifyMock(onComplete) },
+                    onClick = { viewModel.importFromSpotifyMock(context, onComplete) },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF1DB954), // Spotify Green
                         contentColor = Color.White
