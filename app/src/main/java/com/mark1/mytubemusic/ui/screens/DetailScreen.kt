@@ -114,7 +114,7 @@ fun SharedTransitionScope.DetailScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = if (currentSong != null) 180.dp else 16.dp)
                 ) {
-                itemsIndexed(songs) { index, song ->
+                itemsIndexed(songs, key = { _, song -> song.uri }) { index, song ->
                     val isCurrent = currentSong?.uri == song.uri
                     SongItem(song = song, isCurrent = isCurrent, onClick = {
                         playerViewModel.playQueue(songs, index)
