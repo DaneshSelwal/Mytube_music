@@ -102,10 +102,9 @@ fun SharedTransitionScope.NowPlayingScreen(
 
     LaunchedEffect(currentSong?.uri) {
         currentSong?.uri?.let { uri ->
-            PaletteExtractor.getColorsFromUri(context, uri) { c1, c2 ->
-                vibrantColor = c1
-                mutedColor = c2
-            }
+            val (c1, c2) = PaletteExtractor.getColorsFromUri(context, uri)
+            vibrantColor = c1
+            mutedColor = c2
         }
     }
 

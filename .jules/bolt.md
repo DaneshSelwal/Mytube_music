@@ -1,0 +1,3 @@
+## 2026-08-22 - [LaunchedEffect and Synchronous IO]
+**Learning:** In Jetpack Compose, `LaunchedEffect` executes its coroutine block on the Main thread by default. Calling synchronous I/O or heavy CPU-bound operations (like `MediaMetadataRetriever` and bitmap decoding) directly inside `LaunchedEffect` causes severe UI jank.
+**Action:** Always wrap heavy synchronous I/O or CPU operations in `withContext(Dispatchers.IO)` before calling them from `LaunchedEffect` or other Compose side effects. Consider using `LruCache` to cache the results of expensive, repeated computations (like color palette extraction from artwork).
