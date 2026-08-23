@@ -102,10 +102,9 @@ fun SharedTransitionScope.NowPlayingScreen(
 
     LaunchedEffect(currentSong?.uri) {
         currentSong?.uri?.let { uri ->
-            PaletteExtractor.getColorsFromUri(context, uri) { c1, c2 ->
-                vibrantColor = c1
-                mutedColor = c2
-            }
+            val (c1, c2) = PaletteExtractor.getColorsFromUri(context, uri)
+            vibrantColor = c1
+            mutedColor = c2
         }
     }
 
@@ -670,7 +669,7 @@ fun LyricsView(lyrics: List<com.mark1.mytubemusic.util.LyricLine>, currentProgre
         horizontalAlignment = Alignment.CenterHorizontally,
         contentPadding = PaddingValues(vertical = 100.dp)
     ) {
-        itemsIndexed(lyrics) { index, line ->
+        itemsIndexed(lyrics, key = { index, line -> line.startTimeMs.toString() + "_" + index }) { index, line ->
             val isActive = index == activeIndex
             Text(
                 text = line.text,
@@ -709,7 +708,7 @@ fun QueueBottomSheet(playerViewModel: PlayerViewModel, onDismissRequest: () -> U
             LazyColumn(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                itemsIndexed(queue) { index, song ->
+                itemsIndexed(queue, key = { index, song -> song.uri + "_" + index }) { index, song ->
                     val isPlaying = currentSong?.uri == song.uri
                     QueueItem(
                         song = song,
