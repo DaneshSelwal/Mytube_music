@@ -177,20 +177,24 @@ fun SharedTransitionScope.NowPlayingScreen(
         var artBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
         LaunchedEffect(currentSong?.uri) {
             currentSong?.uri?.let { uri ->
-                try {
-                    val retriever = MediaMetadataRetriever()
-                    context.contentResolver.openFileDescriptor(Uri.parse(uri), "r")?.use { pfd ->
-                        retriever.setDataSource(pfd.fileDescriptor)
-                        val art = retriever.embeddedPicture
-                        if (art != null) {
-                            artBitmap = BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
-                        } else {
-                            artBitmap = null
+                // ⚡ Bolt: Offload heavy synchronous I/O operations (MediaMetadataRetriever, BitmapFactory)
+                // to the IO dispatcher to prevent blocking the Main thread and causing UI jank.
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    try {
+                        val retriever = MediaMetadataRetriever()
+                        context.contentResolver.openFileDescriptor(Uri.parse(uri), "r")?.use { pfd ->
+                            retriever.setDataSource(pfd.fileDescriptor)
+                            val art = retriever.embeddedPicture
+                            if (art != null) {
+                                artBitmap = BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
+                            } else {
+                                artBitmap = null
+                            }
                         }
+                        retriever.release()
+                    } catch (e: Exception) {
+                        artBitmap = null
                     }
-                    retriever.release()
-                } catch (e: Exception) {
-                    artBitmap = null
                 }
             }
         }
