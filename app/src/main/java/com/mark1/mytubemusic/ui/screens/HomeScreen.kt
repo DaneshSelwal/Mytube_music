@@ -1,6 +1,7 @@
 package com.mark1.mytubemusic.ui.screens
 
 import com.mark1.mytubemusic.ui.components.MiniPlayer
+import com.mark1.mytubemusic.util.toFormattedDuration
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -342,14 +343,17 @@ fun SongItem(modifier: Modifier = Modifier, song: Song, isCurrent: Boolean, onCl
         animationSpec = tween(300)
     )
     val context = androidx.compose.ui.platform.LocalContext.current
-    var artBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    var artBitmap by remember(song.uri) { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(com.mark1.mytubemusic.util.ArtworkCache.get(song.uri)) }
     
     LaunchedEffect(song.uri) {
+        if (artBitmap != null) return@LaunchedEffect
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             val fileName = "art_${song.title.hashCode()}"
             val cachedFile = java.io.File(context.cacheDir, "$fileName.jpg")
+            var bitmap: androidx.compose.ui.graphics.ImageBitmap? = null
+
             if (cachedFile.exists()) {
-                artBitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
+                bitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
             } else {
                 try {
                     val retriever = android.media.MediaMetadataRetriever()
@@ -357,7 +361,7 @@ fun SongItem(modifier: Modifier = Modifier, song: Song, isCurrent: Boolean, onCl
                         retriever.setDataSource(pfd.fileDescriptor)
                         val art = retriever.embeddedPicture
                         if (art != null) {
-                            artBitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
+                            bitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
                         } else {
                             val success = com.mark1.mytubemusic.util.ArtworkScraper.fetchAndSaveAlbumArt(
                                 "${song.title} ${song.artist}", 
@@ -365,12 +369,17 @@ fun SongItem(modifier: Modifier = Modifier, song: Song, isCurrent: Boolean, onCl
                                 fileName
                             )
                             if (success) {
-                                artBitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
+                                bitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
                             }
                         }
                     }
                     retriever.release()
                 } catch (e: Exception) {}
+            }
+
+            if (bitmap != null) {
+                com.mark1.mytubemusic.util.ArtworkCache.put(song.uri, bitmap!!)
+                artBitmap = bitmap
             }
         }
     }
@@ -445,9 +454,8 @@ fun SongItem(modifier: Modifier = Modifier, song: Song, isCurrent: Boolean, onCl
             )
         }
         
-        fun Long.toFormatTime(): String = String.format("%02d:%02d", this / 1000 / 60, (this / 1000) % 60)
         Text(
-            song.duration.toFormatTime(),
+            song.duration.toFormattedDuration(),
             style = MyTubeTypography.labelSmall.copy(color = Tokens.textDisabled, fontSize = 11.sp)
         )
     }
@@ -457,15 +465,18 @@ fun SongItem(modifier: Modifier = Modifier, song: Song, isCurrent: Boolean, onCl
 @Composable
 fun AlbumArtistCard(modifier: Modifier = Modifier, title: String, subtitle: String, song: Song?, badge: String? = null, onClick: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    var artBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    var artBitmap by remember(song?.uri) { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(song?.uri?.let { com.mark1.mytubemusic.util.ArtworkCache.get(it) }) }
     
     LaunchedEffect(song?.uri) {
         if (song == null) return@LaunchedEffect
+        if (artBitmap != null) return@LaunchedEffect
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             val fileName = "art_${song.title.hashCode()}"
             val cachedFile = java.io.File(context.cacheDir, "$fileName.jpg")
+            var bitmap: androidx.compose.ui.graphics.ImageBitmap? = null
+
             if (cachedFile.exists()) {
-                artBitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
+                bitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
             } else {
                 try {
                     val retriever = android.media.MediaMetadataRetriever()
@@ -473,7 +484,7 @@ fun AlbumArtistCard(modifier: Modifier = Modifier, title: String, subtitle: Stri
                         retriever.setDataSource(pfd.fileDescriptor)
                         val art = retriever.embeddedPicture
                         if (art != null) {
-                            artBitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
+                            bitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
                         } else {
                             val success = com.mark1.mytubemusic.util.ArtworkScraper.fetchAndSaveAlbumArt(
                                 "${song.title} ${song.artist}", 
@@ -481,12 +492,17 @@ fun AlbumArtistCard(modifier: Modifier = Modifier, title: String, subtitle: Stri
                                 fileName
                             )
                             if (success) {
-                                artBitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
+                                bitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
                             }
                         }
                     }
                     retriever.release()
                 } catch (e: Exception) {}
+            }
+
+            if (bitmap != null) {
+                com.mark1.mytubemusic.util.ArtworkCache.put(song.uri, bitmap!!)
+                artBitmap = bitmap
             }
         }
     }
