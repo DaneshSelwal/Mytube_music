@@ -174,24 +174,38 @@ fun SharedTransitionScope.NowPlayingScreen(
             }
         }
 
-        var artBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+        // ⚡ Bolt: Initialize bitmap from ArtworkCache to prevent redundant I/O and jank
+        var artBitmap by remember(currentSong?.uri) {
+            mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(
+                currentSong?.uri?.let { com.mark1.mytubemusic.util.ArtworkCache.get(it) }
+            )
+        }
         LaunchedEffect(currentSong?.uri) {
             currentSong?.uri?.let { uri ->
+                // ⚡ Bolt: Return early if bitmap is already loaded from cache
+                if (artBitmap != null) return@LaunchedEffect
+
                 // ⚡ Bolt: Offload heavy synchronous I/O operations (MediaMetadataRetriever, BitmapFactory)
                 // to the IO dispatcher to prevent blocking the Main thread and causing UI jank.
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                     try {
+                        var bitmap: androidx.compose.ui.graphics.ImageBitmap? = null
                         val retriever = MediaMetadataRetriever()
                         context.contentResolver.openFileDescriptor(Uri.parse(uri), "r")?.use { pfd ->
                             retriever.setDataSource(pfd.fileDescriptor)
                             val art = retriever.embeddedPicture
                             if (art != null) {
-                                artBitmap = BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
-                            } else {
-                                artBitmap = null
+                                bitmap = BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
                             }
                         }
                         retriever.release()
+
+                        if (bitmap != null) {
+                            com.mark1.mytubemusic.util.ArtworkCache.put(uri, bitmap!!)
+                            artBitmap = bitmap
+                        } else {
+                            artBitmap = null
+                        }
                     } catch (e: Exception) {
                         artBitmap = null
                     }
