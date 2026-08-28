@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.mark1.mytubemusic.ui.theme.Tokens
 import com.mark1.mytubemusic.ui.theme.MyTubeTypography
 import com.mark1.mytubemusic.viewmodel.LibraryViewModel
+import com.mark1.mytubemusic.util.ArtworkCache
 import com.mark1.mytubemusic.viewmodel.PlayerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
@@ -48,15 +49,20 @@ fun SharedTransitionScope.DetailScreen(
     val duration by playerViewModel.duration.collectAsState()
 
     val context = androidx.compose.ui.platform.LocalContext.current
-    var artBitmap by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    var artBitmap by androidx.compose.runtime.remember(songs.firstOrNull()?.uri) {
+        androidx.compose.runtime.mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(songs.firstOrNull()?.uri?.let { ArtworkCache.get(it) })
+    }
     
     androidx.compose.runtime.LaunchedEffect(songs.firstOrNull()?.uri) {
         val song = songs.firstOrNull() ?: return@LaunchedEffect
+        if (artBitmap != null) return@LaunchedEffect
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             val fileName = "art_${song.title.hashCode()}"
             val cachedFile = java.io.File(context.cacheDir, "$fileName.jpg")
+            var bitmap: androidx.compose.ui.graphics.ImageBitmap? = null
+
             if (cachedFile.exists()) {
-                artBitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
+                bitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
             } else {
                 try {
                     val retriever = android.media.MediaMetadataRetriever()
@@ -64,11 +70,16 @@ fun SharedTransitionScope.DetailScreen(
                         retriever.setDataSource(pfd.fileDescriptor)
                         val art = retriever.embeddedPicture
                         if (art != null) {
-                            artBitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
+                            bitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
                         }
                     }
                     retriever.release()
                 } catch (e: Exception) {}
+            }
+
+            bitmap?.let { b ->
+                ArtworkCache.put(song.uri, b)
+                artBitmap = b
             }
         }
     }
