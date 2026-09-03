@@ -6,3 +6,4 @@ keystore.properties
 
 # Unnecessary and build files
 app/build/
+.gradle/
