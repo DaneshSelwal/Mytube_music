@@ -15,8 +15,11 @@ interface SongDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSongs(songs: List<Song>)
 
-    @Query("DELETE FROM songs WHERE uri NOT IN (:uris)")
-    suspend fun deleteSongsNotIn(uris: List<String>)
+    @Query("SELECT uri FROM songs")
+    suspend fun getAllSongUris(): List<String>
+
+    @Query("DELETE FROM songs WHERE uri IN (:uris)")
+    suspend fun deleteSongs(uris: List<String>)
     
     @Query("UPDATE songs SET isFavorite = :isFavorite WHERE uri = :uri")
     suspend fun updateFavorite(uri: String, isFavorite: Boolean)

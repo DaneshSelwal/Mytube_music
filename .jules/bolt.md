@@ -9,3 +9,7 @@
 ## 2024-11-13 - [ArtworkCache and Remember]
 **Learning:** In Jetpack Compose, state can be remembered incorrectly if key changes are not tracked. In this codebase, initializing `ImageBitmap` with `null` inside `remember` and decoding repeatedly on every recomposition/navigation bypassed the available `ArtworkCache`, causing performance overhead.
 **Action:** When working with image loading in Jetpack Compose, always initialize state directly from memory caches like `ArtworkCache.get(uri)` during the `remember` block. Wrap the `remember` with a key (`remember(uri)`) to ensure the cache is hit correctly on item recycle, and short-circuit any `LaunchedEffect` that decodes bitmaps if the cache already populated the bitmap.
+
+## 2024-05-09 - [SQLite Parameter Limit with large sets]
+**Learning:** SQLite has a hard limit of 999 parameters for binding variables. When processing large music libraries (which can easily exceed a thousand tracks), passing a large unbounded list directly to a Room query like `@Query("DELETE FROM songs WHERE uri NOT IN (:uris)")` leads to an `SQLiteException: too many SQL variables`.
+**Action:** Avoid passing unbounded dynamic lists directly to SQL `IN` or `NOT IN` clauses. To circumvent the limit, compute the exact set of items to act on (e.g. `urisToDelete`) in Kotlin, then slice them into batches using `chunked(900)`, and finally apply the update or delete operation on each chunk separately.

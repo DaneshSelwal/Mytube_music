@@ -13,7 +13,14 @@ class SongRepository(private val songDao: SongDao) {
     }
     
     suspend fun deleteSongsNotIn(uris: List<String>) {
-        songDao.deleteSongsNotIn(uris)
+        val existingUris = songDao.getAllSongUris()
+        val validUriSet = uris.toSet()
+        val urisToDelete = existingUris.filterNot { it in validUriSet }
+
+        // Chunk deletes to avoid SQLite's 999 parameter limit in IN clause
+        urisToDelete.chunked(900).forEach { chunk ->
+            songDao.deleteSongs(chunk)
+        }
     }
     
     suspend fun toggleFavorite(uri: String, currentStatus: Boolean) {
