@@ -9,3 +9,7 @@
 ## 2024-11-13 - [ArtworkCache and Remember]
 **Learning:** In Jetpack Compose, state can be remembered incorrectly if key changes are not tracked. In this codebase, initializing `ImageBitmap` with `null` inside `remember` and decoding repeatedly on every recomposition/navigation bypassed the available `ArtworkCache`, causing performance overhead.
 **Action:** When working with image loading in Jetpack Compose, always initialize state directly from memory caches like `ArtworkCache.get(uri)` during the `remember` block. Wrap the `remember` with a key (`remember(uri)`) to ensure the cache is hit correctly on item recycle, and short-circuit any `LaunchedEffect` that decodes bitmaps if the cache already populated the bitmap.
+
+## 2024-11-13 - [Debounce Flow Inputs]
+**Learning:** In Jetpack Compose applications, combining rapid user input (like a search query) directly with a large list of data for filtering causes an O(n) operation to execute on every keystroke, leading to CPU spike and UI jank.
+**Action:** When filtering lists based on StateFlow inputs, use the `.debounce(timeMillis)` operator to delay the combination until the user finishes typing. In Kotlin Coroutines, this requires the `@OptIn(FlowPreview::class)` annotation on the class.

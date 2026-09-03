@@ -18,9 +18,12 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.FlowPreview
 
+@OptIn(FlowPreview::class)
 class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
 
     val allSongs: StateFlow<List<Song>> = repository.allSongs
@@ -41,7 +44,8 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
         _searchQuery.value = query
     }
 
-    val filteredSongs: StateFlow<List<Song>> = combine(allSongs, _searchQuery) { songs, query ->
+    // ⚡ Bolt: Debounce search input to reduce processing when typing quickly
+    val filteredSongs: StateFlow<List<Song>> = combine(allSongs, _searchQuery.debounce(300)) { songs, query ->
         if (query.isBlank()) songs else songs.filter { it.title.contains(query, ignoreCase = true) || it.artist.contains(query, ignoreCase = true) }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
