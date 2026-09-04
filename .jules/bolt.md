@@ -13,3 +13,7 @@
 ## 2024-05-09 - [SQLite Parameter Limit with large sets]
 **Learning:** SQLite has a hard limit of 999 parameters for binding variables. When processing large music libraries (which can easily exceed a thousand tracks), passing a large unbounded list directly to a Room query like `@Query("DELETE FROM songs WHERE uri NOT IN (:uris)")` leads to an `SQLiteException: too many SQL variables`.
 **Action:** Avoid passing unbounded dynamic lists directly to SQL `IN` or `NOT IN` clauses. To circumvent the limit, compute the exact set of items to act on (e.g. `urisToDelete`) in Kotlin, then slice them into batches using `chunked(900)`, and finally apply the update or delete operation on each chunk separately.
+
+## 2024-11-20 - [Debouncing StateFlow Computations]
+**Learning:** When combining rapid-emitting `StateFlow`s (like search input) with large datasets for filtering in Kotlin Coroutines, doing so synchronously on the main thread can cause severe jank and UI blockages. The problem is amplified if the filtering logic is computationally expensive (e.g. text matching across thousands of songs).
+**Action:** Always apply `.debounce()` to the rapid-emitting flow before combining. Use conditional debouncing (e.g., `debounce { if (it.isBlank()) 0L else 300L }`) to prevent delaying empty queries. Finally, append `.flowOn(Dispatchers.Default)` to the combined flow to ensure the expensive filtering computation is offloaded to a background thread. Requires `@OptIn(FlowPreview::class)`.
