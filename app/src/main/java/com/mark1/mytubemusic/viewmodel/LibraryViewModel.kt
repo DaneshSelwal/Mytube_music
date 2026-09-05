@@ -14,8 +14,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -41,9 +44,18 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
         _searchQuery.value = query
     }
 
-    val filteredSongs: StateFlow<List<Song>> = combine(allSongs, _searchQuery) { songs, query ->
+    @OptIn(FlowPreview::class)
+    val filteredSongs: StateFlow<List<Song>> = combine(
+        allSongs,
+        // ⚡ Bolt: Debounce search queries to avoid filtering on every keystroke,
+        // reducing CPU load for large lists. Immediate response for empty queries.
+        _searchQuery.debounce { if (it.isBlank()) 0L else 300L }
+    ) { songs, query ->
         if (query.isBlank()) songs else songs.filter { it.title.contains(query, ignoreCase = true) || it.artist.contains(query, ignoreCase = true) }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    }
+    // ⚡ Bolt: Offload the expensive filtering computation from the main thread
+    .flowOn(Dispatchers.Default)
+    .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     private val _selectedDetailTitle = MutableStateFlow("")
     val selectedDetailTitle: StateFlow<String> = _selectedDetailTitle.asStateFlow()
