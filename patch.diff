@@ -1,0 +1,49 @@
+--- app/src/main/java/com/mark1/mytubemusic/viewmodel/LibraryViewModel.kt
++++ app/src/main/java/com/mark1/mytubemusic/viewmodel/LibraryViewModel.kt
+@@ -10,6 +10,7 @@
+ import androidx.lifecycle.viewModelScope
+ import com.mark1.mytubemusic.data.model.Song
+ import com.mark1.mytubemusic.repository.SongRepository
++import kotlinx.coroutines.FlowPreview
+ import kotlinx.coroutines.Dispatchers
+ import kotlinx.coroutines.flow.MutableStateFlow
+ import kotlinx.coroutines.flow.StateFlow
+@@ -19,6 +20,8 @@
+ import kotlinx.coroutines.flow.map
+ import kotlinx.coroutines.flow.combine
+ import kotlinx.coroutines.launch
++import kotlinx.coroutines.flow.debounce
++import kotlinx.coroutines.flow.flowOn
+ import kotlinx.coroutines.withContext
+
+ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
+@@ -27,11 +30,11 @@
+
+     val albums: StateFlow<Map<String, List<Song>>> = allSongs.map { songs ->
+         songs.groupBy { it.album }
+-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
++    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
+
+     val artists: StateFlow<Map<String, List<Song>>> = allSongs.map { songs ->
+         songs.groupBy { it.artist }
+-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
++    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
+
+     private val _searchQuery = MutableStateFlow("")
+     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+@@ -40,9 +43,13 @@
+         _searchQuery.value = query
+     }
+
+-    val filteredSongs: StateFlow<List<Song>> = combine(allSongs, _searchQuery) { songs, query ->
++    @OptIn(FlowPreview::class)
++    val filteredSongs: StateFlow<List<Song>> = combine(
++        allSongs,
++        _searchQuery.debounce { if (it.isBlank()) 0L else 300L }
++    ) { songs, query ->
+         if (query.isBlank()) songs else songs.filter { it.title.contains(query, ignoreCase = true) || it.artist.contains(query, ignoreCase = true) }
+-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
++    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+     private val _selectedDetailTitle = MutableStateFlow("")
+     val selectedDetailTitle: StateFlow<String> = _selectedDetailTitle.asStateFlow()
