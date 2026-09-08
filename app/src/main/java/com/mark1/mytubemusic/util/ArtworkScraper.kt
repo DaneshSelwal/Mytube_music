@@ -1,13 +1,19 @@
 package com.mark1.mytubemusic.util
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttp
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
 import org.jsoup.Jsoup
 import java.io.File
+import java.io.IOException
 import java.net.URLEncoder
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 object ArtworkScraper {
     private val client = OkHttpClient()
@@ -40,7 +46,7 @@ object ArtworkScraper {
                 if (imageUrl == null) return@withContext false
 
                 val request = Request.Builder().url(imageUrl).build()
-                val response = client.newCall(request).execute()
+                val response = client.newCall(request).await()
 
                 if (response.isSuccessful) {
                     response.body?.byteStream()?.use { input ->
@@ -57,5 +63,20 @@ object ArtworkScraper {
                 false
             }
         }
+    }
+
+    private suspend fun Call.await(): Response = suspendCancellableCoroutine { continuation ->
+        continuation.invokeOnCancellation {
+            cancel()
+        }
+        enqueue(object : Callback {
+            override fun onResponse(call: Call, response: Response) {
+                continuation.resume(response)
+            }
+
+            override fun onFailure(call: Call, e: IOException) {
+                continuation.resumeWithException(e)
+            }
+        })
     }
 }
