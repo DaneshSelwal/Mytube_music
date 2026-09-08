@@ -106,4 +106,7 @@ dependencies {
     // DataStore (settings/preferences)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.reorderable)
+
+    // Testing
+    testImplementation("junit:junit:4.13.2")
 }
