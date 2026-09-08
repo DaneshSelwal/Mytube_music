@@ -7,3 +7,5 @@ keystore.properties
 # Unnecessary and build files
 app/build/
 .gradle/
+kotlinc/
+kotlin-compiler.zip
