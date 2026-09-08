@@ -2,7 +2,6 @@ package com.mark1.mytubemusic.util
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttp
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.Jsoup
