@@ -1,7 +1,6 @@
 package com.mark1.mytubemusic.viewmodel
 
 import android.content.Context
-import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.MediaStore
 import android.content.ContentUris
