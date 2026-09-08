@@ -18,8 +18,11 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.FlowPreview
 
 class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
 
@@ -41,9 +44,14 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
         _searchQuery.value = query
     }
 
-    val filteredSongs: StateFlow<List<Song>> = combine(allSongs, _searchQuery) { songs, query ->
+    @OptIn(FlowPreview::class)
+    val filteredSongs: StateFlow<List<Song>> = combine(
+        allSongs,
+        _searchQuery.debounce { if (it.isBlank()) 0L else 300L } // ⚡ Bolt: Debounce search to prevent excessive filtering on large datasets during rapid typing, avoid delaying initial load
+    ) { songs, query ->
         if (query.isBlank()) songs else songs.filter { it.title.contains(query, ignoreCase = true) || it.artist.contains(query, ignoreCase = true) }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    }.flowOn(Dispatchers.Default) // ⚡ Bolt: Offload heavy filtering of large lists to a background thread
+    .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     private val _selectedDetailTitle = MutableStateFlow("")
     val selectedDetailTitle: StateFlow<String> = _selectedDetailTitle.asStateFlow()
