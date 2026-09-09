@@ -17,3 +17,6 @@
 ## 2026-09-03 - [Flow Filtering and Main Thread]
 **Learning:** In Compose/Flow, combining large dataset flows with rapid user inputs (like search query StateFlows) can cause excessive CPU overhead and UI jank because the filtering executes synchronously on the Main thread for every keystroke.
 **Action:** Use `.debounce(300L)` on the query flow to batch typing events. Follow it with `.flowOn(Dispatchers.Default)` after the `combine` block to offload the expensive filtering logic to a background thread before the result reaches `.stateIn`.
+## 2024-11-20 - [Regex in Loop Optimization]
+**Learning:** Initializing and using `Regex` in a hot loop (like parsing every line of an LRC file) causes significant CPU overhead and generates many intermediate string and MatchResult allocations.
+**Action:** For highly predictable formats like LRC timestamps, prefer manual string scanning with direct character index checks (`line[0] == '['`) and primitive math conversions to eliminate regex overhead and reduce GC pauses.
