@@ -17,3 +17,7 @@
 ## 2026-09-03 - [Flow Filtering and Main Thread]
 **Learning:** In Compose/Flow, combining large dataset flows with rapid user inputs (like search query StateFlows) can cause excessive CPU overhead and UI jank because the filtering executes synchronously on the Main thread for every keystroke.
 **Action:** Use `.debounce(300L)` on the query flow to batch typing events. Follow it with `.flowOn(Dispatchers.Default)` after the `combine` block to offload the expensive filtering logic to a background thread before the result reaches `.stateIn`.
+
+## 2024-05-14 - Collection Capacity and Verification Steps
+**Learning:** Backing array reallocations are a hidden performance cost when using dynamic collections without an initial capacity, particularly when parsing predictably-sized input like string lines. Execution plans must explicitly include a verification step immediately after modifying core logic.
+**Action:** When mapping or parsing collections where the output size is known or bounded (like matching lines from a file), instantiate the collection with an explicit initial capacity (e.g., `ArrayList<T>(lines.size)`). Ensure execution plans always follow up logic modifications with an immediate, specific test execution step.
