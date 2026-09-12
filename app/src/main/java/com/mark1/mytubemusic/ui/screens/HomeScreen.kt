@@ -186,6 +186,7 @@ fun SharedTransitionScope.HomeScreen(
     val filteredSongs by libraryViewModel.filteredSongs.collectAsState()
     val albums by libraryViewModel.albums.collectAsState()
     val artists by libraryViewModel.artists.collectAsState()
+    val artistAlbumCounts by libraryViewModel.artistAlbumCounts.collectAsState()
 
     val haptic = LocalHapticFeedback.current
     val backgroundBrush = Brush.verticalGradient(
@@ -301,7 +302,7 @@ fun SharedTransitionScope.HomeScreen(
                                 contentPadding = PaddingValues(bottom = if (currentSong != null) 180.dp else 16.dp, start = 8.dp, end = 8.dp, top = 8.dp)
                             ) {
                                 items(artists.entries.toList(), key = { (artist, _) -> artist }) { (artist, artistSongs) ->
-                                    val albumCount = artistSongs.map { it.album }.distinct().size
+                                    val albumCount = artistAlbumCounts[artist] ?: 0
                                     AlbumArtistCard(modifier = Modifier.animateItem(), title = artist, subtitle = "$albumCount Album(s)", song = artistSongs.firstOrNull(), badge = "Artist") {
                                         libraryViewModel.selectDetail(artist, artistSongs)
                                         onNavigateToDetail()
