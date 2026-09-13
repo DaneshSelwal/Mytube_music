@@ -17,3 +17,6 @@
 ## 2026-09-03 - [Flow Filtering and Main Thread]
 **Learning:** In Compose/Flow, combining large dataset flows with rapid user inputs (like search query StateFlows) can cause excessive CPU overhead and UI jank because the filtering executes synchronously on the Main thread for every keystroke.
 **Action:** Use `.debounce(300L)` on the query flow to batch typing events. Follow it with `.flowOn(Dispatchers.Default)` after the `combine` block to offload the expensive filtering logic to a background thread before the result reaches `.stateIn`.
+## 2024-05-19 - Regex matching inside hot loop parsing
+**Learning:** Parsing LRC lyrics files using Regex is significantly slower and generates excessive object allocations.
+**Action:** Replace `Regex` with manual character index parsing and mathematical conversion when parsing strict patterns like timestamp formats in a loop.
