@@ -1,6 +1,7 @@
 package com.mark1.mytubemusic.data.model
 
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "songs")
@@ -12,7 +13,13 @@ data class Song(
     val album: String,
     val duration: Long,
     val isFavorite: Boolean = false
-)
+) {
+    @get:Ignore
+    val titleLowercase: String by lazy { title.lowercase() }
+
+    @get:Ignore
+    val artistLowercase: String by lazy { artist.lowercase() }
+}
 
 @Entity(tableName = "playlists")
 data class Playlist(
