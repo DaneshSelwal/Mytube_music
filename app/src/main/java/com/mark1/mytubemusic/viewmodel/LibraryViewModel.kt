@@ -49,7 +49,12 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
         allSongs,
         _searchQuery.debounce { if (it.isBlank()) 0L else 300L } // ⚡ Bolt: Debounce search to prevent excessive filtering on large datasets during rapid typing, avoid delaying initial load
     ) { songs, query ->
-        if (query.isBlank()) songs else songs.filter { it.title.contains(query, ignoreCase = true) || it.artist.contains(query, ignoreCase = true) }
+        if (query.isBlank()) {
+            songs
+        } else {
+            val queryLowercase = query.lowercase()
+            songs.filter { it.titleLowercase.contains(queryLowercase) || it.artistLowercase.contains(queryLowercase) }
+        }
     }.flowOn(Dispatchers.Default) // ⚡ Bolt: Offload heavy filtering of large lists to a background thread
     .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 

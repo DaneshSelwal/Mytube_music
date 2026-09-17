@@ -17,3 +17,6 @@
 ## 2026-09-03 - [Flow Filtering and Main Thread]
 **Learning:** In Compose/Flow, combining large dataset flows with rapid user inputs (like search query StateFlows) can cause excessive CPU overhead and UI jank because the filtering executes synchronously on the Main thread for every keystroke.
 **Action:** Use `.debounce(300L)` on the query flow to batch typing events. Follow it with `.flowOn(Dispatchers.Default)` after the `combine` block to offload the expensive filtering logic to a background thread before the result reaches `.stateIn`.
+## 2024-11-13 - [Pre-computing Lowercase strings for filtering]
+**Learning:** When filtering large lists of Room entities using `contains(query, ignoreCase = true)`, the internal `.lowercase()` conversions can cause excessive string allocations and Garbage Collection overhead, especially inside a `combine` flow that reacts to rapid user search input.
+**Action:** Pre-compute lowercase versions of the strings directly on the model entity using `@get:Ignore val propertyLowercase: String by lazy { property.lowercase() }`. Then, lowercase the query string once and use exact case-sensitive matching (`contains(queryLowercase)`) against the lazy properties to drastically reduce memory overhead during search.
