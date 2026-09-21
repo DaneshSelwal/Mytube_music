@@ -10,22 +10,47 @@ data class LyricLine(
 object LrcParser {
     fun parse(lrcContent: String): List<LyricLine> {
         val lines = lrcContent.lines()
-        val lyrics = mutableListOf<LyricLine>()
-        val timePattern = Regex("\\[(\\d{2}):(\\d{2})\\.(\\d{2,3})\\]")
+        val lyrics = ArrayList<LyricLine>(lines.size)
         
-        for (line in lines) {
-            val matchResult = timePattern.find(line)
-            if (matchResult != null) {
-                val min = matchResult.groupValues[1].toLong()
-                val sec = matchResult.groupValues[2].toLong()
-                var msStr = matchResult.groupValues[3]
-                if (msStr.length == 2) msStr += "0" // handle centiseconds
-                val ms = msStr.toLong()
-                
-                val timeInMs = (min * 60 * 1000) + (sec * 1000) + ms
-                val text = line.substring(matchResult.range.last + 1).trim()
-                if (text.isNotEmpty()) {
-                    lyrics.add(LyricLine(timeInMs, text))
+        for (i in lines.indices) {
+            val line = lines[i]
+            val len = line.length
+            // Expected format: [mm:ss.xx] or [mm:ss.xxx]
+            if (len >= 10 && line[0] == '[' && line[3] == ':' && line[6] == '.') {
+                try {
+                    val min = (line[1] - '0') * 10 + (line[2] - '0')
+                    val sec = (line[4] - '0') * 10 + (line[5] - '0')
+
+                    val closingBracketIndex: Int
+                    val ms: Int
+
+                    if (len > 9 && line[9] == ']') {
+                        ms = (line[7] - '0') * 100 + (line[8] - '0') * 10
+                        closingBracketIndex = 9
+                    } else if (len > 10 && line[10] == ']') {
+                        ms = (line[7] - '0') * 100 + (line[8] - '0') * 10 + (line[9] - '0')
+                        closingBracketIndex = 10
+                    } else {
+                        continue
+                    }
+
+                    val timeInMs = (min * 60 * 1000L) + (sec * 1000L) + ms
+
+                    var startText = closingBracketIndex + 1
+                    while (startText < len && line[startText] <= ' ') {
+                        startText++
+                    }
+
+                    var endText = len - 1
+                    while (endText >= startText && line[endText] <= ' ') {
+                        endText--
+                    }
+
+                    if (startText <= endText) {
+                        lyrics.add(LyricLine(timeInMs, line.substring(startText, endText + 1)))
+                    }
+                } catch (e: Exception) {
+                    // Ignore malformed lines
                 }
             }
         }
