@@ -9,26 +9,85 @@ data class LyricLine(
 
 object LrcParser {
     fun parse(lrcContent: String): List<LyricLine> {
-        val lines = lrcContent.lines()
-        val lyrics = mutableListOf<LyricLine>()
-        val timePattern = Regex("\\[(\\d{2}):(\\d{2})\\.(\\d{2,3})\\]")
+        // Fast manual string splitting instead of String.lines() which uses regex internally
+        val lyrics = ArrayList<LyricLine>(256) // ⚡ Bolt: Preallocate capacity
         
-        for (line in lines) {
-            val matchResult = timePattern.find(line)
-            if (matchResult != null) {
-                val min = matchResult.groupValues[1].toLong()
-                val sec = matchResult.groupValues[2].toLong()
-                var msStr = matchResult.groupValues[3]
-                if (msStr.length == 2) msStr += "0" // handle centiseconds
-                val ms = msStr.toLong()
-                
-                val timeInMs = (min * 60 * 1000) + (sec * 1000) + ms
-                val text = line.substring(matchResult.range.last + 1).trim()
-                if (text.isNotEmpty()) {
-                    lyrics.add(LyricLine(timeInMs, text))
+        var start = 0
+        val lrcLength = lrcContent.length
+
+        while (start < lrcLength) {
+            var end = start
+            while (end < lrcLength && lrcContent[end] != '\n' && lrcContent[end] != '\r') {
+                end++
+            }
+
+            // Process line from `start` to `end`
+            var lineStart = start
+            // Trim leading whitespaces
+            while (lineStart < end && lrcContent[lineStart].isWhitespace()) {
+                lineStart++
+            }
+
+            val lineLength = end - lineStart
+            if (lineLength >= 10 && lrcContent[lineStart] == '[') {
+                var i = lineStart + 1
+                var min = 0L
+                while (i < end && lrcContent[i] in '0'..'9') {
+                    min = min * 10 + (lrcContent[i] - '0')
+                    i++
+                }
+                if (i < end && lrcContent[i] == ':') {
+                    i++
+                    var sec = 0L
+                    while (i < end && lrcContent[i] in '0'..'9') {
+                        sec = sec * 10 + (lrcContent[i] - '0')
+                        i++
+                    }
+                    if (i < end && lrcContent[i] == '.') {
+                        i++
+                        var ms = 0L
+                        var msDigits = 0
+                        while (i < end && lrcContent[i] in '0'..'9') {
+                            ms = ms * 10 + (lrcContent[i] - '0')
+                            msDigits++
+                            i++
+                        }
+                        if (i < end && lrcContent[i] == ']') {
+                            // Adjust ms to always be based on 3 digits (milliseconds)
+                            if (msDigits == 2) ms *= 10
+                            else if (msDigits == 1) ms *= 100
+
+                            val timeInMs = (min * 60 * 1000) + (sec * 1000) + ms
+
+                            i++
+
+                            // trim start
+                            while (i < end && lrcContent[i].isWhitespace()) {
+                                i++
+                            }
+
+                            // trim end
+                            var textEnd = end - 1
+                            while (textEnd >= i && lrcContent[textEnd].isWhitespace()) {
+                                textEnd--
+                            }
+
+                            if (textEnd >= i) {
+                                val text = lrcContent.substring(i, textEnd + 1)
+                                lyrics.add(LyricLine(timeInMs, text))
+                            }
+                        }
+                    }
                 }
             }
+
+            start = end
+            // Skip newline chars
+            while (start < lrcLength && (lrcContent[start] == '\n' || lrcContent[start] == '\r')) {
+                start++
+            }
         }
+
         return lyrics.sortedBy { it.startTimeMs }
     }
     
