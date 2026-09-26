@@ -17,3 +17,7 @@
 ## 2026-09-03 - [Flow Filtering and Main Thread]
 **Learning:** In Compose/Flow, combining large dataset flows with rapid user inputs (like search query StateFlows) can cause excessive CPU overhead and UI jank because the filtering executes synchronously on the Main thread for every keystroke.
 **Action:** Use `.debounce(300L)` on the query flow to batch typing events. Follow it with `.flowOn(Dispatchers.Default)` after the `combine` block to offload the expensive filtering logic to a background thread before the result reaches `.stateIn`.
+
+## 2024-05-24 - LRC Parser Optimization
+**Learning:** Regex parsing in tight loops (like parsing a whole LRC file line by line) is incredibly slow and allocates too many objects on Android.
+**Action:** Replaced Regex with manual index and character math parsing. Also remember to ALWAYS keep scratch scripts and cache folders out of version control and ensure not to modify build tools like KSP when doing minor optimizations.
