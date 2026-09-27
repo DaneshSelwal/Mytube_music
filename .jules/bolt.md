@@ -17,3 +17,7 @@
 ## 2026-09-03 - [Flow Filtering and Main Thread]
 **Learning:** In Compose/Flow, combining large dataset flows with rapid user inputs (like search query StateFlows) can cause excessive CPU overhead and UI jank because the filtering executes synchronously on the Main thread for every keystroke.
 **Action:** Use `.debounce(300L)` on the query flow to batch typing events. Follow it with `.flowOn(Dispatchers.Default)` after the `combine` block to offload the expensive filtering logic to a background thread before the result reaches `.stateIn`.
+
+## 2024-11-14 - [Room Annotations with lazy properties]
+**Learning:** When using Kotlin's `by lazy` for pre-computed properties in a Room entity, using just `@get:Ignore` is not sufficient to prevent Room from trying to persist it. `by lazy` creates a synthetic backing field (e.g., `titleLowercase$delegate`). Depending on the version of Room/KSP, it might fail compilation or cause issues because it doesn't know how to handle the `Lazy` delegate.
+**Action:** Always use `@delegate:Ignore` in addition to `@get:Ignore` (or use `@Ignore` directly on the property) to ensure Room completely ignores the lazy property and its synthetic backing field.
