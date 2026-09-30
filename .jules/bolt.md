@@ -17,3 +17,7 @@
 ## 2026-09-03 - [Flow Filtering and Main Thread]
 **Learning:** In Compose/Flow, combining large dataset flows with rapid user inputs (like search query StateFlows) can cause excessive CPU overhead and UI jank because the filtering executes synchronously on the Main thread for every keystroke.
 **Action:** Use `.debounce(300L)` on the query flow to batch typing events. Follow it with `.flowOn(Dispatchers.Default)` after the `combine` block to offload the expensive filtering logic to a background thread before the result reaches `.stateIn`.
+
+## 2024-11-20 - [Avoid O(N) operations in Lazy list items]
+**Learning:** In Jetpack Compose, executing expensive data transformations directly inside the `items` block of a `LazyColumn` or `LazyVerticalGrid` (such as `artistSongs.map { it.album }.distinct().size`) is a performance anti-pattern. Because `items` is a builder block that runs during composition, doing heavy O(N) filtering or mapping here can cause significant UI jank when the list scrolls or recomposes.
+**Action:** When a Lazy list item requires derived data (like counts, distinct filters, or complex string manipulations), precompute these values in the ViewModel. Expose them as a `StateFlow` computed on `Dispatchers.Default`, and observe them in the UI to allow O(1) lookups during composition.
