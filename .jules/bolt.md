@@ -21,3 +21,7 @@
 ## 2024-05-18 - [LRC Parsing Optimization]
 **Learning:** Parsing LRC timestamps using `Regex` and `substring()` allocations inside a loop is slow and memory-intensive, especially for long lyrics files.
 **Action:** For performance-critical string parsing with highly predictable formats (like LRC timestamps), prefer manual character index checks and primitive mathematical conversions (e.g., `(line[1] - '0') * 10`) over `Regex` usage and `substring()` allocations to significantly reduce processing time and memory overhead. Also, explicitly pre-allocate collection capacities when the target size is known.
+
+## 2024-10-03 - [GitHub Actions CI Fix]
+**Learning:** `android-actions/setup-android@v3` is failing with "Failed to find package 'tools'" because the legacy Android SDK `tools` package was deprecated and removed by Google. In addition, GitHub Actions `ubuntu-latest` already comes with a fully configured Android SDK (and the `ANDROID_HOME` variable is pre-set).
+**Action:** Remove `android-actions/setup-android@v3` entirely from GitHub Actions workflows, as it is no longer necessary and actively breaks the build. Also, update `actions/setup-java@v4` to `@v5` to avoid Node 20 deprecation warnings.
