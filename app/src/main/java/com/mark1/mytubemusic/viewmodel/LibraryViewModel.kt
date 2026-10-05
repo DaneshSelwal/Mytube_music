@@ -37,6 +37,13 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
         songs.groupBy { it.artist }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
+    // ⚡ Bolt: Precompute distinct album counts on a background thread to prevent O(N) operations
+    // blocking the main thread during LazyVerticalGrid composition in HomeScreen
+    val artistAlbumCounts: StateFlow<Map<String, Int>> = artists.map { artistMap ->
+        artistMap.mapValues { (_, songs) -> songs.map { it.album }.distinct().size }
+    }.flowOn(Dispatchers.Default)
+    .stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
+
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
