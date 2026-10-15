@@ -64,17 +64,21 @@ fun SharedTransitionScope.DetailScreen(
                 }
             } else {
                 try {
-                    val retriever = android.media.MediaMetadataRetriever()
-                    context.contentResolver.openFileDescriptor(android.net.Uri.parse(song.uri), "r")?.use { pfd ->
-                        retriever.setDataSource(pfd.fileDescriptor)
-                        val art = retriever.embeddedPicture
-                        if (art != null) {
-                            val bitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
-                            com.mark1.mytubemusic.util.ArtworkCache.put(song.uri, bitmap)
-                            artBitmap = bitmap
+                    // ⚡ Bolt: Fast path - Reuse pooled MediaMetadataRetriever to avoid expensive native allocations
+                    val retriever = com.mark1.mytubemusic.util.RetrieverPool.acquire()
+                    try {
+                        context.contentResolver.openFileDescriptor(android.net.Uri.parse(song.uri), "r")?.use { pfd ->
+                            retriever.setDataSource(pfd.fileDescriptor)
+                            val art = retriever.embeddedPicture
+                            if (art != null) {
+                                val bitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
+                                com.mark1.mytubemusic.util.ArtworkCache.put(song.uri, bitmap)
+                                artBitmap = bitmap
+                            }
                         }
+                    } finally {
+                        com.mark1.mytubemusic.util.RetrieverPool.release(retriever)
                     }
-                    retriever.release()
                 } catch (e: Exception) {}
             }
         }
