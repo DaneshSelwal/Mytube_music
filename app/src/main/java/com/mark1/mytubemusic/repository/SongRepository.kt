@@ -21,7 +21,8 @@ class SongRepository(private val songDao: SongDao) {
         val urisToDelete = existingUris.filterNot { it in validUriSet }
 
         // Chunk deletes to avoid SQLite's 999 parameter limit in IN clause.
-        // Launch chunks in parallel using async/awaitAll to significantly speed up large deletions.
+        // Launch chunks in parallel using async/awaitAll to optimize execution time while
+        // Room's internal connection pool safely queues these requests to avoid database locking.
         coroutineScope {
             urisToDelete.chunked(900).map { chunk ->
                 async { songDao.deleteSongs(chunk) }
