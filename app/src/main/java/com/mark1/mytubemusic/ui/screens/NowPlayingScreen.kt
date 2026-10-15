@@ -182,19 +182,23 @@ fun SharedTransitionScope.NowPlayingScreen(
                 // to the IO dispatcher to prevent blocking the Main thread and causing UI jank.
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                     try {
-                        val retriever = MediaMetadataRetriever()
-                        context.contentResolver.openFileDescriptor(Uri.parse(uri), "r")?.use { pfd ->
-                            retriever.setDataSource(pfd.fileDescriptor)
-                            val art = retriever.embeddedPicture
-                            if (art != null) {
-                                val bitmap = BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
-                                com.mark1.mytubemusic.util.ArtworkCache.put(uri, bitmap)
-                                artBitmap = bitmap
-                            } else {
-                                artBitmap = null
+                        // ⚡ Bolt: Pool MediaMetadataRetriever to avoid expensive instantiation and native resource allocation overhead
+                        val retriever = com.mark1.mytubemusic.util.MediaMetadataRetrieverPool.acquire()
+                        try {
+                            context.contentResolver.openFileDescriptor(Uri.parse(uri), "r")?.use { pfd ->
+                                retriever.setDataSource(pfd.fileDescriptor)
+                                val art = retriever.embeddedPicture
+                                if (art != null) {
+                                    val bitmap = BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
+                                    com.mark1.mytubemusic.util.ArtworkCache.put(uri, bitmap)
+                                    artBitmap = bitmap
+                                } else {
+                                    artBitmap = null
+                                }
                             }
+                        } finally {
+                            com.mark1.mytubemusic.util.MediaMetadataRetrieverPool.release(retriever)
                         }
-                        retriever.release()
                     } catch (e: Exception) {
                         artBitmap = null
                     }
