@@ -29,15 +29,19 @@ object PaletteExtractor {
             var targetBitmap: Bitmap? = cachedImageBitmap?.asAndroidBitmap()
 
             if (targetBitmap == null) {
-                val retriever = MediaMetadataRetriever()
-                context.contentResolver.openFileDescriptor(Uri.parse(uri), "r")?.use { pfd ->
-                    retriever.setDataSource(pfd.fileDescriptor)
-                    val art = retriever.embeddedPicture
-                    if (art != null) {
-                        targetBitmap = BitmapFactory.decodeByteArray(art, 0, art.size)
+                // ⚡ Bolt: Pool MediaMetadataRetriever to avoid expensive instantiation and native resource allocation overhead
+                val retriever = MediaMetadataRetrieverPool.acquire()
+                try {
+                    context.contentResolver.openFileDescriptor(Uri.parse(uri), "r")?.use { pfd ->
+                        retriever.setDataSource(pfd.fileDescriptor)
+                        val art = retriever.embeddedPicture
+                        if (art != null) {
+                            targetBitmap = BitmapFactory.decodeByteArray(art, 0, art.size)
+                        }
                     }
+                } finally {
+                    MediaMetadataRetrieverPool.release(retriever)
                 }
-                retriever.release()
             }
 
             if (targetBitmap != null) {
