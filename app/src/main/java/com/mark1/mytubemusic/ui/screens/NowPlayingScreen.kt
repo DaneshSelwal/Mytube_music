@@ -182,19 +182,23 @@ fun SharedTransitionScope.NowPlayingScreen(
                 // to the IO dispatcher to prevent blocking the Main thread and causing UI jank.
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                     try {
-                        val retriever = MediaMetadataRetriever()
-                        context.contentResolver.openFileDescriptor(Uri.parse(uri), "r")?.use { pfd ->
-                            retriever.setDataSource(pfd.fileDescriptor)
-                            val art = retriever.embeddedPicture
-                            if (art != null) {
-                                val bitmap = BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
-                                com.mark1.mytubemusic.util.ArtworkCache.put(uri, bitmap)
-                                artBitmap = bitmap
-                            } else {
-                                artBitmap = null
+                        // ⚡ Bolt: Fast path - Reuse pooled MediaMetadataRetriever to avoid expensive native allocations
+                        val retriever = com.mark1.mytubemusic.util.RetrieverPool.acquire()
+                        try {
+                            context.contentResolver.openFileDescriptor(Uri.parse(uri), "r")?.use { pfd ->
+                                retriever.setDataSource(pfd.fileDescriptor)
+                                val art = retriever.embeddedPicture
+                                if (art != null) {
+                                    val bitmap = BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
+                                    com.mark1.mytubemusic.util.ArtworkCache.put(uri, bitmap)
+                                    artBitmap = bitmap
+                                } else {
+                                    artBitmap = null
+                                }
                             }
+                        } finally {
+                            com.mark1.mytubemusic.util.RetrieverPool.release(retriever)
                         }
-                        retriever.release()
                     } catch (e: Exception) {
                         artBitmap = null
                     }
