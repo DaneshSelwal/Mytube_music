@@ -31,7 +31,7 @@ object ArtworkScraper {
 
                 for (img in imgElements) {
                     val src = img.attr("data-src")
-                    if (src.isNotEmpty() && src.startsWith("http")) {
+                    if (src.isNotEmpty() && src.startsWith("https")) {
                         imageUrl = src
                         break
                     }
