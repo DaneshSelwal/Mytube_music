@@ -21,7 +21,7 @@ object LrcParser {
                 var msStr = matchResult.groupValues[3]
                 if (msStr.length == 2) msStr += "0" // handle centiseconds
                 val ms = msStr.toLong()
-                
+
                 val timeInMs = (min * 60 * 1000) + (sec * 1000) + ms
                 val text = line.substring(matchResult.range.last + 1).trim()
                 if (text.isNotEmpty()) {
