@@ -17,3 +17,6 @@
 ## 2026-09-03 - [Flow Filtering and Main Thread]
 **Learning:** In Compose/Flow, combining large dataset flows with rapid user inputs (like search query StateFlows) can cause excessive CPU overhead and UI jank because the filtering executes synchronously on the Main thread for every keystroke.
 **Action:** Use `.debounce(300L)` on the query flow to batch typing events. Follow it with `.flowOn(Dispatchers.Default)` after the `combine` block to offload the expensive filtering logic to a background thread before the result reaches `.stateIn`.
+## 2026-10-19 - [Precomputing O(N) ops outside Lazy Grids]
+**Learning:** In Compose, calling `artistSongs.map { it.album }.distinct().size` inside a `LazyVerticalGrid` `items` block causes UI jank because the O(N) calculation runs repeatedly on the UI thread for every recomposed or recycled item.
+**Action:** Use a ViewModel and `Dispatchers.Default` to map and precalculate distinct values ahead of time into a dictionary/map `StateFlow`, then perform an O(1) map lookup inside the Compose UI items block.
