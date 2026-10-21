@@ -17,3 +17,7 @@
 ## 2026-09-03 - [Flow Filtering and Main Thread]
 **Learning:** In Compose/Flow, combining large dataset flows with rapid user inputs (like search query StateFlows) can cause excessive CPU overhead and UI jank because the filtering executes synchronously on the Main thread for every keystroke.
 **Action:** Use `.debounce(300L)` on the query flow to batch typing events. Follow it with `.flowOn(Dispatchers.Default)` after the `combine` block to offload the expensive filtering logic to a background thread before the result reaches `.stateIn`.
+
+## 2024-11-14 - [LRC Parsing Performance]
+**Learning:** In highly repetitive string parsing scenarios with predictable formats (like LRC files containing hundreds of lines), compiling and executing `Regex` per function call introduces significant CPU overhead. Additionally, using `trim()` and `substring()` operations creates multiple temporary objects, increasing GC pressure and affecting performance.
+**Action:** Replace `Regex` implementations with manual character index checks (`indexOf`) and primitive mathematical calculations (character distance and ASCII math) for predictable, high-volume parsing. Pre-allocate collections when size is known to prevent resizing overhead.
