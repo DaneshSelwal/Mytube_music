@@ -27,6 +27,9 @@ object LrcParser {
             val bracketClose = line.indexOf(']', dot)
             if (bracketClose == -1 || (bracketClose - dot != 3 && bracketClose - dot != 4)) continue
 
+            if (!line[bracketOpen + 1].isDigit() || !line[bracketOpen + 2].isDigit() || !line[colon + 1].isDigit() || !line[colon + 2].isDigit() || !line[dot + 1].isDigit() || !line[dot + 2].isDigit()) continue
+            if (bracketClose - dot == 4 && !line[dot + 3].isDigit()) continue
+
             try {
                 // Parse timestamp primitively to save string parsing overhead
                 val min = (line[bracketOpen + 1] - '0') * 10L + (line[bracketOpen + 2] - '0')
