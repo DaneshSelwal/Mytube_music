@@ -116,13 +116,13 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
                         val fileName = java.io.File(data).nameWithoutExtension
                         
                         // User requested to figure out singer name from the last part of filename
-                        if (fileName.contains(" - ")) {
-                            val parts = fileName.split(" - ")
-                            if (parts.size >= 2) {
-                                artist = parts.last().trim()
-                                title = parts.dropLast(1).joinToString(" - ").trim()
-                                if (title.startsWith("._")) title = title.removePrefix("._")
-                            }
+                        // Performance optimization: use lastIndexOf and substring instead of split and joinToString
+                        // to avoid repeated array allocations within the cursor loop.
+                        val separatorIndex = fileName.lastIndexOf(" - ")
+                        if (separatorIndex != -1) {
+                            artist = fileName.substring(separatorIndex + 3).trim()
+                            title = fileName.substring(0, separatorIndex).trim()
+                            if (title.startsWith("._")) title = title.removePrefix("._")
                         } else if (fileName.startsWith("._")) {
                             title = fileName.removePrefix("._")
                         }
