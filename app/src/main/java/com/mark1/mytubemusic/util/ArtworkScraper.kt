@@ -21,9 +21,18 @@ object ArtworkScraper {
                 val encodedQuery = URLEncoder.encode("$query album art", "UTF-8")
                 val url = "https://www.google.com/search?q=$encodedQuery&tbm=isch"
 
-                val doc = Jsoup.connect(url)
-                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-                    .get()
+                // ⚡ Optimization: Replaced synchronous Jsoup.connect().get() with an asynchronous
+                // OkHttp request using the custom await() extension. This prevents blocking a thread
+                // in the Dispatchers.IO pool.
+                val htmlRequest = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+                    .build()
+
+                val htmlResponse = client.newCall(htmlRequest).await()
+                val htmlBody = htmlResponse.body?.string() ?: return@withContext false
+
+                val doc = Jsoup.parse(htmlBody)
 
                 // Find first image URL
                 val imgElements = doc.select("img")
@@ -40,7 +49,10 @@ object ArtworkScraper {
                 if (imageUrl == null) return@withContext false
 
                 val request = Request.Builder().url(imageUrl).build()
-                val response = client.newCall(request).execute()
+
+                // ⚡ Optimization: Replaced synchronous client.newCall(request).execute() with an
+                // asynchronous OkHttp request using the custom await() extension.
+                val response = client.newCall(request).await()
 
                 if (response.isSuccessful) {
                     response.body?.byteStream()?.use { input ->
