@@ -17,10 +17,10 @@ class SongRepository(private val songDao: SongDao) {
         val validUriSet = uris.toSet()
         val urisToDelete = existingUris.filterNot { it in validUriSet }
 
-        // Chunk deletes to avoid SQLite's 999 parameter limit in IN clause
-        urisToDelete.chunked(900).forEach { chunk ->
-            songDao.deleteSongs(chunk)
-        }
+        // Chunk deletes to avoid SQLite's 999 parameter limit in IN clause.
+        // Use a single database transaction via SongDao to eliminate the massive
+        // disk I/O overhead of starting and committing separate transactions for each chunk.
+        songDao.deleteSongsInChunks(urisToDelete)
     }
     
     suspend fun toggleFavorite(uri: String, currentStatus: Boolean) {
