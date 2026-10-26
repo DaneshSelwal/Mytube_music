@@ -17,3 +17,7 @@
 ## 2026-09-03 - [Flow Filtering and Main Thread]
 **Learning:** In Compose/Flow, combining large dataset flows with rapid user inputs (like search query StateFlows) can cause excessive CPU overhead and UI jank because the filtering executes synchronously on the Main thread for every keystroke.
 **Action:** Use `.debounce(300L)` on the query flow to batch typing events. Follow it with `.flowOn(Dispatchers.Default)` after the `combine` block to offload the expensive filtering logic to a background thread before the result reaches `.stateIn`.
+
+## 2024-11-14 - [String allocations in Library Scanner]
+**Learning:** When scanning large media libraries (`MediaStore.Audio.Media.EXTERNAL_CONTENT_URI`), iterating over the cursor using a `while` loop means the inner logic runs thousands of times. Using `.split(" - ")` and collection operations like `dropLast()` inside this loop causes significant memory churn due to the continuous allocation of arrays and intermediate strings.
+**Action:** In performance-critical loops parsing predictable string formats, avoid regex and `.split()`. Use manual index tracking (like `lastIndexOf`) and `substring()` to strictly limit allocations.
