@@ -17,3 +17,7 @@
 ## 2026-09-03 - [Flow Filtering and Main Thread]
 **Learning:** In Compose/Flow, combining large dataset flows with rapid user inputs (like search query StateFlows) can cause excessive CPU overhead and UI jank because the filtering executes synchronously on the Main thread for every keystroke.
 **Action:** Use `.debounce(300L)` on the query flow to batch typing events. Follow it with `.flowOn(Dispatchers.Default)` after the `combine` block to offload the expensive filtering logic to a background thread before the result reaches `.stateIn`.
+
+## 2024-11-13 - [GitHub Actions Node.js Deprecation and Android SDK]
+**Learning:** Modern GitHub runner images like `ubuntu-latest` have the Android SDK pre-installed. The `android-actions/setup-android@v3` action forces the use of deprecated Node.js 20, causing CI warnings, and older versions can cause `sdkmanager` package resolution errors (like failing to find the 'tools' package).
+**Action:** Do not use `android-actions/setup-android` on modern runners unless a specific, non-standard SDK version is strictly required. For standard Android builds, relying on the pre-installed SDK is sufficient and avoids deprecation issues and package resolution failures. Use `actions/setup-java@v4` as v5 does not exist.
