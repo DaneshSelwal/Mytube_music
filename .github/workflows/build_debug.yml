@@ -21,8 +21,9 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # ⚡ Bolt: Removed android-actions/setup-android as modern ubuntu-latest runners
+      # already have the Android SDK pre-installed. This avoids package resolution errors
+      # and node.js deprecation warnings.
 
       - name: Grant execute permission for Gradle
         run: chmod +x gradlew
