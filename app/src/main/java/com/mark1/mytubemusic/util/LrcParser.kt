@@ -10,26 +10,35 @@ data class LyricLine(
 object LrcParser {
     fun parse(lrcContent: String): List<LyricLine> {
         val lines = lrcContent.lines()
-        val lyrics = mutableListOf<LyricLine>()
-        val timePattern = Regex("\\[(\\d{2}):(\\d{2})\\.(\\d{2,3})\\]")
+        // ⚡ Bolt: Pre-allocate collection size to avoid backing array reallocations
+        val lyrics = ArrayList<LyricLine>(lines.size)
         
         for (line in lines) {
-            val matchResult = timePattern.find(line)
-            if (matchResult != null) {
-                val min = matchResult.groupValues[1].toLong()
-                val sec = matchResult.groupValues[2].toLong()
-                var msStr = matchResult.groupValues[3]
-                if (msStr.length == 2) msStr += "0" // handle centiseconds
-                val ms = msStr.toLong()
-                
-                val timeInMs = (min * 60 * 1000) + (sec * 1000) + ms
-                val text = line.substring(matchResult.range.last + 1).trim()
-                if (text.isNotEmpty()) {
-                    lyrics.add(LyricLine(timeInMs, text))
+            // ⚡ Bolt: Use manual character index checks and primitive parsing instead of Regex to significantly reduce processing time and memory overhead.
+            if (line.length > 10 && line[0] == '[' && line[3] == ':' && line[6] == '.') {
+                val closeBracketIndex = line.indexOf(']')
+                if (closeBracketIndex > 6) {
+                    try {
+                        val min = line.substring(1, 3).toLong()
+                        val sec = line.substring(4, 6).toLong()
+                        var msStr = line.substring(7, closeBracketIndex)
+                        if (msStr.length == 2) msStr += "0" // handle centiseconds
+                        val ms = msStr.toLong()
+
+                        val timeInMs = (min * 60 * 1000) + (sec * 1000) + ms
+                        val text = line.substring(closeBracketIndex + 1).trim()
+                        if (text.isNotEmpty()) {
+                            lyrics.add(LyricLine(timeInMs, text))
+                        }
+                    } catch (e: NumberFormatException) {
+                        // Ignore lines that don't match the format perfectly
+                    }
                 }
             }
         }
-        return lyrics.sortedBy { it.startTimeMs }
+        // ⚡ Bolt: Use in-place sortBy to prevent unnecessary intermediate collection allocations during sorting
+        lyrics.sortBy { it.startTimeMs }
+        return lyrics
     }
     
     fun getLyricsFromFile(path: String): List<LyricLine> {
