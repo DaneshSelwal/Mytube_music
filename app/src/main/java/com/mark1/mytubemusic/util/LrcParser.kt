@@ -10,26 +10,55 @@ data class LyricLine(
 object LrcParser {
     fun parse(lrcContent: String): List<LyricLine> {
         val lines = lrcContent.lines()
-        val lyrics = mutableListOf<LyricLine>()
-        val timePattern = Regex("\\[(\\d{2}):(\\d{2})\\.(\\d{2,3})\\]")
+        // ⚡ Bolt: Pre-allocate list capacity to avoid array reallocations
+        val lyrics = ArrayList<LyricLine>(lines.size)
         
         for (line in lines) {
-            val matchResult = timePattern.find(line)
-            if (matchResult != null) {
-                val min = matchResult.groupValues[1].toLong()
-                val sec = matchResult.groupValues[2].toLong()
-                var msStr = matchResult.groupValues[3]
-                if (msStr.length == 2) msStr += "0" // handle centiseconds
-                val ms = msStr.toLong()
-                
-                val timeInMs = (min * 60 * 1000) + (sec * 1000) + ms
-                val text = line.substring(matchResult.range.last + 1).trim()
-                if (text.isNotEmpty()) {
-                    lyrics.add(LyricLine(timeInMs, text))
+            val bracketIdx = line.indexOf('[')
+            if (bracketIdx == -1) continue
+
+            // ⚡ Bolt: Use manual index checks and primitive math instead of Regex for significant performance gains
+            if (line.length >= bracketIdx + 10 && line[bracketIdx + 3] == ':' && line[bracketIdx + 6] == '.') {
+                try {
+                    val min = (line[bracketIdx + 1] - '0') * 10 + (line[bracketIdx + 2] - '0')
+                    val sec = (line[bracketIdx + 4] - '0') * 10 + (line[bracketIdx + 5] - '0')
+
+                    val closeBracketIdx = line.indexOf(']', bracketIdx + 7)
+                    if (closeBracketIdx == -1) continue
+
+                    val ms: Int
+                    if (closeBracketIdx == bracketIdx + 9) { // [mm:ss.xx]
+                        ms = (line[bracketIdx + 7] - '0') * 100 + (line[bracketIdx + 8] - '0') * 10
+                    } else if (closeBracketIdx == bracketIdx + 10) { // [mm:ss.xxx]
+                        ms = (line[bracketIdx + 7] - '0') * 100 + (line[bracketIdx + 8] - '0') * 10 + (line[bracketIdx + 9] - '0')
+                    } else {
+                        continue
+                    }
+
+                    val timeInMs = (min * 60 * 1000L) + (sec * 1000L) + ms
+
+                    // ⚡ Bolt: Optimize string extraction to prevent allocations
+                    var textStart = closeBracketIdx + 1
+                    while (textStart < line.length && line[textStart].isWhitespace()) {
+                        textStart++
+                    }
+                    var textEnd = line.length - 1
+                    while (textEnd >= textStart && line[textEnd].isWhitespace()) {
+                        textEnd--
+                    }
+
+                    if (textStart <= textEnd) {
+                        val text = line.substring(textStart, textEnd + 1)
+                        lyrics.add(LyricLine(timeInMs, text))
+                    }
+                } catch (e: Exception) {
+                    // Ignore malformed lines
                 }
             }
         }
-        return lyrics.sortedBy { it.startTimeMs }
+        // ⚡ Bolt: Use in-place sortBy to avoid creating a new list
+        lyrics.sortBy { it.startTimeMs }
+        return lyrics
     }
     
     fun getLyricsFromFile(path: String): List<LyricLine> {
