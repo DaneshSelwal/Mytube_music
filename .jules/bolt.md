@@ -17,3 +17,7 @@
 ## 2026-09-03 - [Flow Filtering and Main Thread]
 **Learning:** In Compose/Flow, combining large dataset flows with rapid user inputs (like search query StateFlows) can cause excessive CPU overhead and UI jank because the filtering executes synchronously on the Main thread for every keystroke.
 **Action:** Use `.debounce(300L)` on the query flow to batch typing events. Follow it with `.flowOn(Dispatchers.Default)` after the `combine` block to offload the expensive filtering logic to a background thread before the result reaches `.stateIn`.
+
+## 2026-11-04 - [Regex vs Manual Parsing in LRC]
+**Learning:** For highly repetitive string parsing with predictable formats (like LRC timestamps), `Regex` instantiation and matching create significant garbage collection pressure due to string allocations for match groups. However, when replacing `Regex(\d)` with manual character subtraction (`char - '0'`), it is crucial to first explicitly validate `char.isDigit()`. Otherwise, malformed inputs containing spaces or letters will silently evaluate to garbage negative values.
+**Action:** When replacing simple `Regex` with manual index-based parsing in Kotlin, use `isDigit()` guards before performing `char - '0'` math to maintain the strictness of the original regex digit match and prevent silent regressions.
