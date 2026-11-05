@@ -356,24 +356,34 @@ fun SongItem(modifier: Modifier = Modifier, song: Song, isCurrent: Boolean, onCl
                 bitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
             } else {
                 try {
-                    val retriever = android.media.MediaMetadataRetriever()
-                    context.contentResolver.openFileDescriptor(android.net.Uri.parse(song.uri), "r")?.use { pfd ->
-                        retriever.setDataSource(pfd.fileDescriptor)
-                        val art = retriever.embeddedPicture
-                        if (art != null) {
-                            bitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
-                        } else {
-                            val success = com.mark1.mytubemusic.util.ArtworkScraper.fetchAndSaveAlbumArt(
-                                "${song.title} ${song.artist}", 
-                                context.cacheDir, 
-                                fileName
-                            )
-                            if (success) {
-                                bitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
+                    // ⚡ Bolt: Pool MediaMetadataRetriever to avoid expensive instantiation and native resource destruction
+                    val retriever = com.mark1.mytubemusic.util.MediaMetadataRetrieverPool.acquire()
+                    var success = false
+                    try {
+                        context.contentResolver.openFileDescriptor(android.net.Uri.parse(song.uri), "r")?.use { pfd ->
+                            retriever.setDataSource(pfd.fileDescriptor)
+                            val art = retriever.embeddedPicture
+                            if (art != null) {
+                                bitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
+                            } else {
+                                val scraperSuccess = com.mark1.mytubemusic.util.ArtworkScraper.fetchAndSaveAlbumArt(
+                                    "${song.title} ${song.artist}",
+                                    context.cacheDir,
+                                    fileName
+                                )
+                                if (scraperSuccess) {
+                                    bitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
+                                }
                             }
                         }
+                        success = true
+                    } finally {
+                        if (success) {
+                            com.mark1.mytubemusic.util.MediaMetadataRetrieverPool.release(retriever)
+                        } else {
+                            retriever.release()
+                        }
                     }
-                    retriever.release()
                 } catch (e: Exception) {}
             }
 
@@ -479,24 +489,34 @@ fun AlbumArtistCard(modifier: Modifier = Modifier, title: String, subtitle: Stri
                 bitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
             } else {
                 try {
-                    val retriever = android.media.MediaMetadataRetriever()
-                    context.contentResolver.openFileDescriptor(android.net.Uri.parse(song.uri), "r")?.use { pfd ->
-                        retriever.setDataSource(pfd.fileDescriptor)
-                        val art = retriever.embeddedPicture
-                        if (art != null) {
-                            bitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
-                        } else {
-                            val success = com.mark1.mytubemusic.util.ArtworkScraper.fetchAndSaveAlbumArt(
-                                "${song.title} ${song.artist}", 
-                                context.cacheDir, 
-                                fileName
-                            )
-                            if (success) {
-                                bitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
+                    // ⚡ Bolt: Pool MediaMetadataRetriever to avoid expensive instantiation and native resource destruction
+                    val retriever = com.mark1.mytubemusic.util.MediaMetadataRetrieverPool.acquire()
+                    var success = false
+                    try {
+                        context.contentResolver.openFileDescriptor(android.net.Uri.parse(song.uri), "r")?.use { pfd ->
+                            retriever.setDataSource(pfd.fileDescriptor)
+                            val art = retriever.embeddedPicture
+                            if (art != null) {
+                                bitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
+                            } else {
+                                val scraperSuccess = com.mark1.mytubemusic.util.ArtworkScraper.fetchAndSaveAlbumArt(
+                                    "${song.title} ${song.artist}",
+                                    context.cacheDir,
+                                    fileName
+                                )
+                                if (scraperSuccess) {
+                                    bitmap = android.graphics.BitmapFactory.decodeFile(cachedFile.absolutePath)?.asImageBitmap()
+                                }
                             }
                         }
+                        success = true
+                    } finally {
+                        if (success) {
+                            com.mark1.mytubemusic.util.MediaMetadataRetrieverPool.release(retriever)
+                        } else {
+                            retriever.release()
+                        }
                     }
-                    retriever.release()
                 } catch (e: Exception) {}
             }
 

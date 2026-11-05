@@ -64,17 +64,27 @@ fun SharedTransitionScope.DetailScreen(
                 }
             } else {
                 try {
-                    val retriever = android.media.MediaMetadataRetriever()
-                    context.contentResolver.openFileDescriptor(android.net.Uri.parse(song.uri), "r")?.use { pfd ->
-                        retriever.setDataSource(pfd.fileDescriptor)
-                        val art = retriever.embeddedPicture
-                        if (art != null) {
-                            val bitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
-                            com.mark1.mytubemusic.util.ArtworkCache.put(song.uri, bitmap)
-                            artBitmap = bitmap
+                    // ⚡ Bolt: Pool MediaMetadataRetriever to avoid expensive instantiation and native resource destruction
+                    val retriever = com.mark1.mytubemusic.util.MediaMetadataRetrieverPool.acquire()
+                    var success = false
+                    try {
+                        context.contentResolver.openFileDescriptor(android.net.Uri.parse(song.uri), "r")?.use { pfd ->
+                            retriever.setDataSource(pfd.fileDescriptor)
+                            val art = retriever.embeddedPicture
+                            if (art != null) {
+                                val bitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
+                                com.mark1.mytubemusic.util.ArtworkCache.put(song.uri, bitmap)
+                                artBitmap = bitmap
+                            }
+                        }
+                        success = true
+                    } finally {
+                        if (success) {
+                            com.mark1.mytubemusic.util.MediaMetadataRetrieverPool.release(retriever)
+                        } else {
+                            retriever.release()
                         }
                     }
-                    retriever.release()
                 } catch (e: Exception) {}
             }
         }
