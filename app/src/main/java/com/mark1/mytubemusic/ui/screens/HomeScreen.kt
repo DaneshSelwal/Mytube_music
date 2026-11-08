@@ -184,8 +184,9 @@ fun SharedTransitionScope.HomeScreen(
     val tabs = listOf("Songs", "Albums", "Artists")
     val searchQuery by libraryViewModel.searchQuery.collectAsState()
     val filteredSongs by libraryViewModel.filteredSongs.collectAsState()
-    val albums by libraryViewModel.albums.collectAsState()
-    val artists by libraryViewModel.artists.collectAsState()
+    val albumsList by libraryViewModel.albumsList.collectAsState()
+    val artistsList by libraryViewModel.artistsList.collectAsState()
+    val artistAlbumCounts by libraryViewModel.artistAlbumCounts.collectAsState()
 
     val haptic = LocalHapticFeedback.current
     val backgroundBrush = Brush.verticalGradient(
@@ -285,7 +286,7 @@ fun SharedTransitionScope.HomeScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(bottom = if (currentSong != null) 180.dp else 16.dp, start = 8.dp, end = 8.dp, top = 8.dp)
                             ) {
-                                items(albums.entries.toList(), key = { (album, _) -> album }) { (album, albumSongs) ->
+                                items(albumsList, key = { (album, _) -> album }) { (album, albumSongs) ->
                                     val artist = albumSongs.firstOrNull()?.artist ?: "Unknown Artist"
                                     AlbumArtistCard(modifier = Modifier.animateItem(), title = album, subtitle = artist, song = albumSongs.firstOrNull()) {
                                         libraryViewModel.selectDetail(album, albumSongs)
@@ -300,8 +301,8 @@ fun SharedTransitionScope.HomeScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(bottom = if (currentSong != null) 180.dp else 16.dp, start = 8.dp, end = 8.dp, top = 8.dp)
                             ) {
-                                items(artists.entries.toList(), key = { (artist, _) -> artist }) { (artist, artistSongs) ->
-                                    val albumCount = artistSongs.map { it.album }.distinct().size
+                                items(artistsList, key = { (artist, _) -> artist }) { (artist, artistSongs) ->
+                                    val albumCount = artistAlbumCounts[artist] ?: 0
                                     AlbumArtistCard(modifier = Modifier.animateItem(), title = artist, subtitle = "$albumCount Album(s)", song = artistSongs.firstOrNull(), badge = "Artist") {
                                         libraryViewModel.selectDetail(artist, artistSongs)
                                         onNavigateToDetail()
