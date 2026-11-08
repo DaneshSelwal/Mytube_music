@@ -33,9 +33,24 @@ class LibraryViewModel(private val repository: SongRepository) : ViewModel() {
         songs.groupBy { it.album }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
+    // ⚡ Bolt: Precompute album list to avoid .toList() conversion in UI
+    val albumsList: StateFlow<List<Map.Entry<String, List<Song>>>> = albums.map {
+        it.entries.toList()
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     val artists: StateFlow<Map<String, List<Song>>> = allSongs.map { songs ->
         songs.groupBy { it.artist }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
+
+    // ⚡ Bolt: Precompute artist list to avoid .toList() conversion in UI
+    val artistsList: StateFlow<List<Map.Entry<String, List<Song>>>> = artists.map {
+        it.entries.toList()
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    // ⚡ Bolt: Precompute album counts for each artist to avoid O(N) distinct() calls in UI during scrolling
+    val artistAlbumCounts: StateFlow<Map<String, Int>> = artists.map { artistsMap ->
+        artistsMap.mapValues { (_, songs) -> songs.map { it.album }.distinct().size }
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Lazily, emptyMap())
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
