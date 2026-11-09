@@ -2,10 +2,8 @@ package com.mark1.mytubemusic.util
 
 import org.junit.Test
 import org.junit.Assert.*
-import kotlin.system.measureTimeMillis
 
 class LrcParserTest {
-
     @Test
     fun testParse() {
         val lrc = """
