@@ -17,3 +17,7 @@
 ## 2026-09-03 - [Flow Filtering and Main Thread]
 **Learning:** In Compose/Flow, combining large dataset flows with rapid user inputs (like search query StateFlows) can cause excessive CPU overhead and UI jank because the filtering executes synchronously on the Main thread for every keystroke.
 **Action:** Use `.debounce(300L)` on the query flow to batch typing events. Follow it with `.flowOn(Dispatchers.Default)` after the `combine` block to offload the expensive filtering logic to a background thread before the result reaches `.stateIn`.
+
+## 2025-01-26 - [LRC Regex Parsing Overhead]
+**Learning:** Parsing large or numerous LRC files inside a performance-critical loop using Kotlin's `Regex` causes significant CPU and memory overhead due to repeated object allocations.
+**Action:** When parsing highly predictable text formats like `.lrc` timestamps, replace `Regex` matching with manual character index checks (`indexOf()`) and primitive mathematical conversions. This completely avoids intermediate object allocations (except for the final result list) and reduces processing time significantly. Furthermore, replacing `sortedBy` with an in-place `sortBy` on a pre-allocated `ArrayList` prevents the allocation of an additional list during sorting.
